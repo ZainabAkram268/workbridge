@@ -1,5 +1,4 @@
-<<<<<<< Updated upstream
-=======
+
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import { MessageCircle, Send, Circle } from "lucide-react";
@@ -8,14 +7,13 @@ function initials(n = "") {
   return n.split(" ").slice(0, 2).map(p => p[0]).join("").toUpperCase();
 }
 
-// ✅ Conversations
+
 const MOCK_CONVOS = [
   { id: "j1", name: "Sara Baig", time: "2:34 PM", unread: 2 },
   { id: "j2", name: "Usman Khan", time: "Yesterday", unread: 0 },
   { id: "j3", name: "Fatima Asif", time: "Mon", unread: 0 },
 ];
 
-// ✅ Messages per conversation
 const MOCK_MESSAGES = {
   j1: [
     { id: 1, from: "them", text: "Hi, are you available tomorrow?", time: "2:30 PM" },
@@ -24,11 +22,11 @@ const MOCK_MESSAGES = {
   ],
   j2: [
     { id: 1, from: "them", text: "Can you confirm the work?", time: "Yesterday" },
-    { id: 2, from: "me", text: "Yes confirmed 👍", time: "Yesterday" },
+    { id: 2, from: "me", text: "Yes confirmed ", time: "Yesterday" },
   ],
   j3: [
     { id: 1, from: "them", text: "Great job today!", time: "Mon" },
-    { id: 2, from: "me", text: "Thank you 😊", time: "Mon" },
+    { id: 2, from: "me", text: "Thank you ", time: "Mon" },
   ],
 };
 
