@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -208,4 +206,3 @@ export default function FindWorkers() {
     </div>
   );
 }
->>>>>>> Stashed changes

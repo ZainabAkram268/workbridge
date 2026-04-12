@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import React, { useState } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import {
@@ -279,4 +277,3 @@ export default function JobRequests() {
     </div>
   );
 }
->>>>>>> Stashed changes

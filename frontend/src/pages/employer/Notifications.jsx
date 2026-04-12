@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
@@ -188,4 +186,3 @@ export default function EmployerNotifications() {
     </div>
   );
 }
->>>>>>> Stashed changes

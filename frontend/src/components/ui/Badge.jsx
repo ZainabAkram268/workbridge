@@ -1,31 +1,29 @@
-import React from "react";
+// components/ui/Badge.jsx
 
-const VARIANTS = {
-  available:     { bg: "#dcfce7", color: "#166534" },
-  busy:          { bg: "#fee2e2", color: "#991b1b" },
-  requested:     { bg: "#fef9c3", color: "#854d0e" },
-  accepted:      { bg: "#dcfce7", color: "#166534" },
-  "in-progress": { bg: "#dbeafe", color: "#1e40af" },
-  awaiting:      { bg: "#f3e8ff", color: "#7c3aed" },
-  completed:     { bg: "#dcfce7", color: "#166534" },
-  rejected:      { bg: "#fee2e2", color: "#991b1b" },
-  cancelled:     { bg: "#f3f4f6", color: "#6b7280" },
-  expired:       { bg: "#ffedd5", color: "#9a3412" },
-  pending:       { bg: "#fef9c3", color: "#854d0e" },
-  verified:      { bg: "#dcfce7", color: "#166534" },
-  default:       { bg: "#f3f4f6", color: "#374151" },
+const variantClasses = {
+  available: "bg-green-100 text-green-800",
+  busy: "bg-red-100 text-red-800",
+  pending: "bg-yellow-100 text-yellow-800",
+  accepted: "bg-green-100 text-green-800",
+  "in-progress": "bg-blue-100 text-blue-800",
+  completed: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+  cancelled: "bg-gray-100 text-gray-500",
+  expired: "bg-orange-100 text-orange-800",
+  verified: "bg-green-100 text-green-800",
+  default: "bg-gray-100 text-gray-700",
 };
 
-export default function Badge({ children, variant = "default", dot = false, style = {} }) {
-  const v = VARIANTS[variant] || VARIANTS.default;
+export default function Badge({ children, variant = "default", dot = false, className = "" }) {
+  const colorCls = variantClasses[variant] ?? variantClasses.default;
+
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: "5px",
-      padding: "4px 12px", borderRadius: "999px",
-      fontSize: "12px", fontWeight: 600,
-      background: v.bg, color: v.color, ...style,
-    }}>
-      {dot && <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: v.color, flexShrink: 0 }} />}
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colorCls} ${className}`}
+    >
+      {dot && (
+        <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0" />
+      )}
       {children}
     </span>
   );

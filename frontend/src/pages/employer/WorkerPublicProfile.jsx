@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
@@ -226,4 +224,3 @@ export default function WorkerPublicProfile() {
     </div>
   );
 }
->>>>>>> Stashed changes
