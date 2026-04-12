@@ -19,12 +19,55 @@ export default function Login() {
   const { login } = useAuth();
   const navigate  = useNavigate();
 
+  // Phone number validation for Pakistan (+92 format)
+  const validatePhone = (value) => {
+    // Remove all non-digit characters except leading +
+    let cleaned = value.replace(/[^\d+]/g, "");
+
+    // Allow only +92 or 03xx format
+    if (cleaned.startsWith("+")) {
+      return cleaned.match(/^\+92\d{10}$/) || cleaned === "+";
+    } else {
+      return cleaned.match(/^03\d{9}$/) || cleaned === "";
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    
+    // Allow only numbers and + sign
+    const sanitized = value.replace(/[^0-9+]/g, "");
+
+    // Basic length limit (max +92 followed by 10 digits)
+    if (sanitized.length > 13) return;
+
+    // Auto-format: if user starts with 0, keep as is (03xx format)
+    // if starts with +, convert to international format
+    setPhone(sanitized);
+    setError(""); // Clear error when typing
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // Final validation before API call
+    const isValidPhone = phone.match(/^\+92\d{10}$/) || phone.match(/^03\d{9}$/);
+
+    if (!isValidPhone) {
+      setError("Please enter a valid Pakistani phone number (e.g., +923001234567 or 03001234567)");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { token, role } = await api.post("/auth/login", { phone, password, role: tab });
+      const { token, role } = await api.post("/auth/login", { 
+        phone, 
+        password, 
+        role: tab 
+      });
+
       login(token);
       navigate(ROLE_REDIRECT[role] || "/", { replace: true });
     } catch (err) {
@@ -41,7 +84,7 @@ export default function Login() {
         {/* Logo */}
         <div className="text-center mb-7">
           <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <Network className="w-6 h-6 text-teal" />
+            <Network className="w-6 h-6 text-teal-500" />
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900">Welcome Back</h1>
           <p className="text-sm text-gray-500 mt-1">Sign in to your WorkBridge account</p>
@@ -51,7 +94,7 @@ export default function Login() {
         <div className="flex gap-2 bg-gray-100 rounded-xl p-1 mb-6">
           {[
             { id: "worker",   label: "Worker",   icon: <HardHat   className="w-4 h-4" /> },
-            { id: "employer", label: "Employer",  icon: <Briefcase className="w-4 h-4" /> },
+            { id: "employer", label: "Employer", icon: <Briefcase className="w-4 h-4" /> },
           ].map((r) => (
             <button
               key={r.id}
@@ -68,28 +111,37 @@ export default function Login() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="on">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
             <input
               type="tel"
+              name="phone"
+              autoComplete="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={handlePhoneChange}
               placeholder="+92 300 1234567"
               required
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Format: +923001234567 or 03001234567
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
+              name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             />
           </div>
 

@@ -12,20 +12,43 @@ const SERVICES = [
   { id: "driver",      icon: <Car       className="w-6 h-6" />, label: "Drivers"           },
   { id: "gardener",    icon: <Leaf      className="w-6 h-6" />, label: "Gardeners"         },
   { id: "babysitter",  icon: <Baby      className="w-6 h-6" />, label: "Babysitters"       },
-  { id: "cook",        icon: <ChefHat  className="w-6 h-6" />, label: "Cooks"             },
-  { id: "electrician", icon: <Zap       className="w-6 h-6" />, label: "Electricians"     },
+  { id: "cook",        icon: <ChefHat   className="w-6 h-6" />, label: "Cooks"             },
+  { id: "electrician", icon: <Zap       className="w-6 h-6" />, label: "Electricians"      },
   { id: "plumber",     icon: <Wrench    className="w-6 h-6" />, label: "Plumbers"          },
-  { id: "security",    icon: <Shield    className="w-6 h-6" />, label: "Security Guards"  },
+  { id: "security",    icon: <Shield    className="w-6 h-6" />, label: "Security Guards"   },
 ];
 const CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
-const STEPS = ["Personal Info", "Services", "Availability", "Documents", "Verify OTP"];
+const STEPS  = ["Personal Info", "Services", "Availability", "Documents", "Verify OTP"];
+
+const formatPhone = (v) => {
+  const digits = v.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 4) return digits;
+  return digits.slice(0, 4) + "-" + digits.slice(4);
+};
+
+const formatCnic = (v) => {
+  const digits = v.replace(/\D/g, "").slice(0, 13);
+  if (digits.length <= 5) return digits;
+  if (digits.length <= 12) return digits.slice(0, 5) + "-" + digits.slice(5);
+  return digits.slice(0, 5) + "-" + digits.slice(5, 12) + "-" + digits.slice(12);
+};
+
+const blockNonAlpha = (e) => {
+  if (
+    !/^[a-zA-Z\s]$/.test(e.key) &&
+    !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
+  ) {
+    e.preventDefault();
+  }
+};
 
 export default function WorkerRegister() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [step, setStep]               = useState(0);
+  const [error, setError]             = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [loading, setLoading]         = useState(false);
+  const [otpDigits, setOtpDigits]     = useState(["", "", "", "", "", ""]);
   const [resendTimer, setResendTimer] = useState(60);
   const otpRefs = useRef([]);
 
@@ -39,7 +62,53 @@ export default function WorkerRegister() {
     cnicFront: null, cnicBack: null,
   });
 
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const today  = new Date();
+  const maxDob = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
+    .toISOString().split("T")[0];
+  const minDob = new Date(today.getFullYear() - 80, today.getMonth(), today.getDate())
+    .toISOString().split("T")[0];
+
+  const setField = (k, v) => {
+    if (k === "fullName")         v = v.replace(/[^a-zA-Z\s]/g, "").slice(0, 60);
+    if (k === "fatherSpouseName") v = v.replace(/[^a-zA-Z\s]/g, "").slice(0, 60);
+
+    if (k === "phone") {
+      v = formatPhone(v);
+      const digits = v.replace(/\D/g, "");
+      if (digits.length >= 2 && !digits.startsWith("03"))
+        setFieldErrors((e) => ({ ...e, phone: "Phone must start with 03." }));
+      else
+        setFieldErrors((e) => ({ ...e, phone: undefined }));
+    }
+    if (k === "cnicNumber") {
+      v = formatCnic(v);
+      const digits = v.replace(/\D/g, "");
+      if (digits.length >= 5 && !digits.startsWith("35202"))
+        setFieldErrors((e) => ({ ...e, cnicNumber: "CNIC must start with 35202." }));
+      else
+        setFieldErrors((e) => ({ ...e, cnicNumber: undefined }));
+    }
+    if (k === "password") {
+      if (v.length > 0 && v.length < 8)
+        setFieldErrors((e) => ({ ...e, password: "Password must be at least 8 characters." }));
+      else
+        setFieldErrors((e) => ({ ...e, password: undefined }));
+    }
+    if (k === "confirmPassword") {
+  setForm((f) => {
+    if (v !== f.password)
+      setFieldErrors((e) => ({ ...e, confirmPassword: "Passwords do not match." }));
+    else
+      setFieldErrors((e) => ({ ...e, confirmPassword: undefined }));
+    return f; // don't change form here, just read latest password
+  });
+}
+    if (!["phone", "cnicNumber", "password", "confirmPassword"].includes(k))
+      setFieldErrors((e) => ({ ...e, [k]: undefined }));
+
+    setForm((f) => ({ ...f, [k]: v }));
+  };
+
   const toggleArr = (k, v) =>
     setForm((f) => ({
       ...f,
@@ -54,20 +123,65 @@ export default function WorkerRegister() {
 
   const validateStep = () => {
     setError("");
+    const errs = {};
+
     if (step === 0) {
-      if (!form.fullName.trim()) return setError("Full name is required");
-      if (!form.fatherSpouseName.trim()) return setError("Father/Spouse name is required");
-      if (!form.dateOfBirth) return setError("Date of birth is required");
-      if (!form.cnicNumber.match(/^\d{5}-\d{7}-\d$/)) return setError("CNIC format: 00000-0000000-0");
-      if (!form.phone.match(/^03\d{2}-\d{7}$/)) return setError("Phone format: 03XX-XXXXXXX");
-      if (!form.currentAddress.trim()) return setError("Current address is required");
-      if (!form.password || form.password.length < 8) return setError("Password must be at least 8 characters");
-      if (form.password !== form.confirmPassword) return setError("Passwords do not match");
-      return true;
+      if (!form.fullName.trim())
+        errs.fullName = "Full name is required.";
+      else if (form.fullName.trim().length < 3)
+        errs.fullName = "Name must be at least 3 characters.";
+
+      if (!form.fatherSpouseName.trim())
+        errs.fatherSpouseName = "Father/Spouse name is required.";
+      else if (form.fatherSpouseName.trim().length < 3)
+        errs.fatherSpouseName = "Name must be at least 3 characters.";
+
+      if (!form.dateOfBirth)
+        errs.dateOfBirth = "Date of birth is required.";
+      else if (form.dateOfBirth > maxDob)
+        errs.dateOfBirth = "Worker must be at least 18 years old.";
+      else if (form.dateOfBirth < minDob)
+        errs.dateOfBirth = "Please enter a valid date of birth.";
+
+      if (!form.cnicNumber.trim())
+        errs.cnicNumber = "CNIC is required.";
+      else if (!/^35202-[0-9]{7}-[0-9]$/.test(form.cnicNumber.trim()))
+        errs.cnicNumber = "CNIC must follow format: 35202-XXXXXXX-X.";
+
+      if (!form.phone.trim())
+        errs.phone = "Phone is required.";
+      else if (!/^03[0-9]{2}-[0-9]{7}$/.test(form.phone.trim()))
+        errs.phone = "Enter valid format: 03XX-XXXXXXX.";
+
+      if (!form.currentAddress.trim())
+        errs.currentAddress = "Current address is required.";
+      else if (!/[a-zA-Z]/.test(form.currentAddress))
+        errs.currentAddress = "Address must contain letters, not just numbers.";
+
+      if (!form.password || form.password.length < 8)
+        errs.password = "Password must be at least 8 characters.";
+
+      if (form.password !== form.confirmPassword)
+        errs.confirmPassword = "Passwords do not match.";
+
+      if (Object.keys(errs).length > 0) {
+        setFieldErrors(errs);
+        return false;
+      }
     }
-    if (step === 1 && form.services.length === 0) return setError("Select at least one service");
-    if (step === 2 && form.days.length === 0) return setError("Select at least one available day");
-    if (step === 3 && !form.cnicFront) return setError("CNIC front image is required");
+
+    if (step === 1 && form.services.length === 0) {
+      setError("Please select at least one service.");
+      return false;
+    }
+    if (step === 2 && form.days.length === 0) {
+      setError("Please select at least one available day.");
+      return false;
+    }
+    if (step === 3 && !form.cnicFront) {
+      setError("CNIC front image is required.");
+      return false;
+    }
     return true;
   };
 
@@ -120,6 +234,13 @@ export default function WorkerRegister() {
     }
   };
 
+  const inputClass = (key) =>
+    `w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 transition-colors ${
+      fieldErrors[key]
+        ? "border-red-400 focus:ring-red-300 bg-red-50"
+        : "border-gray-300 focus:ring-teal-400"
+    }`;
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-2xl mx-auto">
@@ -138,15 +259,9 @@ export default function WorkerRegister() {
           {STEPS.map((label, i) => (
             <React.Fragment key={i}>
               <div className="flex flex-col items-center gap-1">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                    i < step
-                      ? "bg-teal text-white"
-                      : i === step
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-200 text-gray-500"
-                  }`}
-                >
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                  i < step ? "bg-teal text-white" : i === step ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-500"
+                }`}>
                   {i < step ? <Check className="w-4 h-4" /> : i + 1}
                 </div>
                 <span className="text-[10px] text-gray-500 text-center leading-tight hidden sm:block">{label}</span>
@@ -172,44 +287,150 @@ export default function WorkerRegister() {
             <form onSubmit={handleNext} className="space-y-4">
               <h2 className="text-lg font-bold text-gray-900 mb-1">Personal Information</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="Muhammad Ali" value={form.fullName} onChange={(e) => set("fullName", e.target.value)} required />
+                  <input
+                    className={inputClass("fullName")}
+                    placeholder="Muhammad Ali"
+                    value={form.fullName}
+                    onKeyDown={blockNonAlpha}
+                    onChange={(e) => setField("fullName", e.target.value)}
+                  />
+                  {fieldErrors.fullName
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.fullName}</p>
+                    : <p className="text-xs text-gray-400 mt-1">Letters only</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Father/Spouse Name <span className="text-red-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="Abdul Rehman" value={form.fatherSpouseName} onChange={(e) => set("fatherSpouseName", e.target.value)} required />
+                  <input
+                    className={inputClass("fatherSpouseName")}
+                    placeholder="Abdul Rehman"
+                    value={form.fatherSpouseName}
+                    onKeyDown={blockNonAlpha}
+                    onChange={(e) => setField("fatherSpouseName", e.target.value)}
+                  />
+                  {fieldErrors.fatherSpouseName
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.fatherSpouseName}</p>
+                    : <p className="text-xs text-gray-400 mt-1">Letters only</p>}
                 </div>
+
+                {/* ── Date of Birth – blocks manual invalid year entry ── */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span className="text-red-500">*</span></label>
-                  <input type="date" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} required />
+                  <input
+                    type="date"
+                    className={inputClass("dateOfBirth")}
+                    value={form.dateOfBirth}
+                    min={minDob}
+                    max={maxDob}
+                    onKeyDown={(e) => {
+                      // Allow only navigation keys; block all manual typing to prevent invalid years
+                      if (![
+                        "Tab", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+                        "Delete", "Backspace", "F1", "F2", "F3", "F4", "F5"
+                      ].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) { setField("dateOfBirth", ""); return; }
+                      // Extra guard: reject year outside plausible range as user types
+                      const year = parseInt(val.split("-")[0], 10);
+                      if (year > today.getFullYear()) return;
+                      setField("dateOfBirth", val);
+                    }}
+                  />
+                  {fieldErrors.dateOfBirth
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.dateOfBirth}</p>
+                    : <p className="text-xs text-gray-400 mt-1">Must be 18 years or older</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Gender <span className="text-red-500">*</span></label>
-                  <select className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" value={form.gender} onChange={(e) => set("gender", e.target.value)}>
+                  <select className={inputClass("gender")} value={form.gender} onChange={(e) => setField("gender", e.target.value)}>
                     <option>Male</option><option>Female</option><option>Other</option>
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">CNIC <span className="text-red-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="35202-1234567-1" value={form.cnicNumber} onChange={(e) => set("cnicNumber", e.target.value)} required />
+                  <input
+                    className={inputClass("cnicNumber")}
+                    placeholder="35202-XXXXXXX-X"
+                    value={form.cnicNumber}
+                    onChange={(e) => setField("cnicNumber", e.target.value)}
+                  />
+                  {fieldErrors.cnicNumber
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.cnicNumber}</p>
+                    : <p className="text-xs text-gray-400 mt-1">e.g. 35202-1234567-8</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-red-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="0300-1234567" value={form.phone} onChange={(e) => set("phone", e.target.value)} required />
+                  <input
+                    className={inputClass("phone")}
+                    placeholder="03XX-XXXXXXX"
+                    value={form.phone}
+                    onChange={(e) => setField("phone", e.target.value)}
+                  />
+                  {fieldErrors.phone
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>
+                    : <p className="text-xs text-gray-400 mt-1">e.g. 0309-1234567</p>}
                 </div>
+
+                {/* ── Current Address – must contain at least one letter ── */}
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Current Address <span className="text-red-500">*</span></label>
-                  <input className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="House No., Street, Area, City" value={form.currentAddress} onChange={(e) => set("currentAddress", e.target.value)} required />
+                  <input
+                    className={inputClass("currentAddress")}
+                    placeholder="House No., Street, Area, City"
+                    value={form.currentAddress}
+                    onKeyDown={(e) => {
+                      // Block leading symbols that make no sense in an address
+                      if (["+", "=", "*", "#", "@", "!", "$", "%", "^", "&", "(", ")", "_"].includes(e.key))
+                        e.preventDefault();
+                    }}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Reject value if it contains zero letters (pure digits/symbols)
+                      if (val.length > 0 && !/[a-zA-Z]/.test(val)) return;
+                      setField("currentAddress", val);
+                    }}
+                  />
+                  {fieldErrors.currentAddress
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.currentAddress}</p>
+                    : <p className="text-xs text-gray-400 mt-1">e.g. House 5, Street 3, Lahore</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
-                  <input type="password" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="Min 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} required />
+                  <input
+                    type="password"
+                    className={inputClass("password")}
+                    placeholder="Min 8 characters"
+                    value={form.password}
+                    onChange={(e) => setField("password", e.target.value)}
+                  />
+                  {fieldErrors.password
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
+                    : <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password <span className="text-red-500">*</span></label>
-                  <input type="password" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} required />
+                  <input
+                    type="password"
+                    className={inputClass("confirmPassword")}
+                    placeholder="Re-enter password"
+                    value={form.confirmPassword}
+                    onChange={(e) => setField("confirmPassword", e.target.value)}
+                  />
+                  {fieldErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{fieldErrors.confirmPassword}</p>}
                 </div>
+
               </div>
               <div className="flex justify-end pt-2">
                 <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors flex items-center gap-2">
@@ -228,14 +449,9 @@ export default function WorkerRegister() {
                 {SERVICES.map((s) => {
                   const selected = form.services.includes(s.id);
                   return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggleArr("services", s.id)}
+                    <button key={s.id} type="button" onClick={() => toggleArr("services", s.id)}
                       className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-medium transition-all ${
-                        selected
-                          ? "border-teal bg-teal-light text-teal-dark"
-                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        selected ? "border-teal bg-teal-light text-teal-dark" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
                       }`}
                     >
                       <span className={selected ? "text-teal-dark" : "text-gray-400"}>{s.icon}</span>
@@ -265,18 +481,11 @@ export default function WorkerRegister() {
                   {DAYS.map((d) => {
                     const sel = form.days.includes(d);
                     return (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => toggleArr("days", d)}
+                      <button key={d} type="button" onClick={() => toggleArr("days", d)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
-                          sel
-                            ? "bg-gray-900 text-white border-gray-900"
-                            : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                          sel ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
                         }`}
-                      >
-                        {d}
-                      </button>
+                      >{d}</button>
                     );
                   })}
                 </div>
@@ -284,21 +493,21 @@ export default function WorkerRegister() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                  <input type="time" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} />
+                  <input type="time" className={inputClass("startTime")} value={form.startTime} onChange={(e) => setField("startTime", e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                  <input type="time" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
+                  <input type="time" className={inputClass("endTime")} value={form.endTime} onChange={(e) => setField("endTime", e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Preferred City</label>
-                  <select className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" value={form.preferredCity} onChange={(e) => set("preferredCity", e.target.value)}>
+                  <select className={inputClass("preferredCity")} value={form.preferredCity} onChange={(e) => setField("preferredCity", e.target.value)}>
                     {CITIES.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Max Travel (km)</label>
-                  <input type="number" min="1" max="100" className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal" value={form.maxTravelDistance} onChange={(e) => set("maxTravelDistance", e.target.value)} />
+                  <input type="number" min="1" max="100" className={inputClass("maxTravelDistance")} value={form.maxTravelDistance} onChange={(e) => setField("maxTravelDistance", e.target.value)} />
                 </div>
               </div>
               <div className="flex justify-between pt-2">
@@ -318,7 +527,7 @@ export default function WorkerRegister() {
               <h2 className="text-lg font-bold text-gray-900">CNIC Documents</h2>
               <p className="text-sm text-gray-500">Upload clear photos of your CNIC for verification</p>
               {[
-                { key: "cnicFront", label: "CNIC Front Side", required: true },
+                { key: "cnicFront", label: "CNIC Front Side", required: true  },
                 { key: "cnicBack",  label: "CNIC Back Side",  required: false },
               ].map(({ key, label, required }) => (
                 <div key={key}>
@@ -330,14 +539,14 @@ export default function WorkerRegister() {
                       <div className="text-sm text-gray-600 flex items-center justify-center gap-2">
                         <Check className="w-4 h-4 text-green-600" />
                         {form[key].name}
-                        <button type="button" onClick={() => set(key, null)} className="ml-2 text-red-500 text-xs underline">Remove</button>
+                        <button type="button" onClick={() => setField(key, null)} className="ml-2 text-red-500 text-xs underline">Remove</button>
                       </div>
                     ) : (
                       <>
                         <Camera className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                         <label className="cursor-pointer text-sm text-teal-dark font-semibold hover:underline">
                           Click to upload
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => set(key, e.target.files[0])} />
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => setField(key, e.target.files[0])} />
                         </label>
                         <p className="text-xs text-gray-400 mt-1">JPG, PNG up to 5MB</p>
                       </>
@@ -380,18 +589,13 @@ export default function WorkerRegister() {
                   />
                 ))}
               </div>
-              <button
-                onClick={verifyOtp}
-                disabled={loading}
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 mb-4"
-              >
+              <button onClick={verifyOtp} disabled={loading}
+                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 mb-4">
                 {loading ? "Verifying…" : "Verify & Create Account"}
               </button>
               <p className="text-sm text-gray-500">
                 Didn't receive it?{" "}
-                <button onClick={() => {}} disabled={resendTimer > 0} className="font-semibold text-teal-dark disabled:opacity-40">
-                  Resend
-                </button>
+                <button onClick={() => {}} disabled={resendTimer > 0} className="font-semibold text-teal-dark disabled:opacity-40">Resend</button>
                 {resendTimer > 0 && <span className="text-gray-400"> ({resendTimer}s)</span>}
               </p>
             </div>
