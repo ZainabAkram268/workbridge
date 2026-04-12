@@ -7,64 +7,93 @@ import {
   Home, LogOut, User, ArrowLeft 
 } from "lucide-react";
 
-// Helper for initials
-function initials(n="") { 
-  return n.split(" ").slice(0,2).map(p => p[0]).join("").toUpperCase(); 
+// --- HELPERS ---
+function initials(n = "") { 
+  return n.split(" ").slice(0, 2).map(p => p[0]).join("").toUpperCase(); 
 }
 
+// --- MOCK DATA (Merging Adeeba's detailed logic with Main's previews) ---
 const MOCK_CONVOS = [
-  { id:"j1", name:"Sara Baig", preview:"Please be on time tomo...", time:"2:34 PM", unread:2 },
-  { id:"j2", name:"Usman Khan", preview:"Can you confirm the w...", time:"Yesterday", unread:0 },
-  { id:"j3", name:"Fatima Asif", preview:"Great job today, thank you!", time:"Mon", unread:0 },
+  { id: "j1", name: "Sara Baig", preview: "Please be on time tomo...", time: "2:34 PM", unread: 2 },
+  { id: "j2", name: "Usman Khan", preview: "Can you confirm the w...", time: "Yesterday", unread: 0 },
+  { id: "j3", name: "Fatima Asif", preview: "Great job today, thank you!", time: "Mon", unread: 0 },
 ];
 
-const MOCK_MSGS = [
-  { id:1, from:"them", text:"Hi, I've accepted your job request. Please confirm the start time.", time:"2:30 PM" },
-  { id:2, from:"me", text:"Great! Please be at our place by 9 AM sharp.", time:"2:31 PM" },
-  { id:3, from:"them", text:"Sure, I'll be there on time. Do you have a parking spot available?", time:"2:32 PM" },
-  { id:4, from:"me", text:"Yes, you can park in the driveway. See you tomorrow!", time:"2:34 PM" },
-];
+const MOCK_MESSAGES_DATA = {
+  j1: [
+    { id: 1, from: "them", text: "Hi, are you available tomorrow?", time: "2:30 PM" },
+    { id: 2, from: "me", text: "Yes, what time?", time: "2:31 PM" },
+    { id: 3, from: "them", text: "9 AM sharp please", time: "2:32 PM" },
+  ],
+  j2: [
+    { id: 1, from: "them", text: "Can you confirm the work?", time: "Yesterday" },
+    { id: 2, from: "me", text: "Yes confirmed ", time: "Yesterday" },
+  ],
+  j3: [
+    { id: 1, from: "them", text: "Great job today!", time: "Mon" },
+    { id: 2, from: "me", text: "Thank you ", time: "Mon" },
+  ],
+};
 
 export default function Chat() {
   const { jobId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth(); 
   
-  // Default to first convo if no ID in URL
-  const [activeConvo, setActiveConvo] = useState(jobId || MOCK_CONVOS[0].id);
-  const [messages, setMessages] = useState(MOCK_MSGS);
+  // State
+  const [activeConvo, setActiveConvo] = useState(jobId || "j1");
+  const [messages, setMessages] = useState(MOCK_MESSAGES_DATA[jobId || "j1"] || []);
   const [text, setText] = useState("");
-  const [convos, setConvos] = useState(MOCK_CONVOS);
+  const [convos] = useState(MOCK_CONVOS);
   const bottomRef = useRef();
 
-  // Determine dashboard path based on role
-  const getDashboardPath = () => {
-    if (!user) return "/";
-    return user.role === "admin" ? "/admin/dashboard" : `/${user.role}/dashboard`;
-  };
+  // --- LOGIC ---
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Logic to switch conversations and attempt to fetch from API
   useEffect(() => {
     if (!activeConvo) return;
+    
+    // 1. First load mock data for immediate UI feedback
+    setMessages(MOCK_MESSAGES_DATA[activeConvo] || []);
+
+    // 2. Then try to fetch real data from API
     api.get(`/chat/${activeConvo}`)
-      .then(d => { if(d?.length) setMessages(d); })
-      .catch(() => {});
+      .then(d => { 
+        if(d?.length) setMessages(d); 
+      })
+      .catch(() => console.log("Using mock data as fallback"));
   }, [activeConvo]);
 
   const sendMsg = async () => {
     if (!text.trim()) return;
+
     const msg = { 
       id: Date.now(), 
       from: "me", 
       text: text.trim(), 
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) 
     };
+
+    // Update UI locally
     setMessages(ms => [...ms, msg]);
     setText("");
-    try { await api.post(`/chat/${activeConvo}`, { message: msg.text }); } catch {}
+
+    // Save to Database via API
+    try { 
+      await api.post(`/chat/${activeConvo}`, { message: msg.text }); 
+    } catch (err) {
+      console.error("Failed to sync message to server");
+    }
+  };
+
+  const getDashboardPath = () => {
+    if (!user) return "/";
+    return user.role === "admin" ? "/admin/dashboard" : `/${user.role}/dashboard`;
   };
 
   const active = convos.find(c => c.id === activeConvo);
@@ -72,14 +101,14 @@ export default function Chat() {
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
       
-      {/* 1. Sidebar */}
+      {/* 1. Sidebar (Conversation List) */}
       <div className="w-80 border-r border-slate-100 flex flex-col bg-slate-50/30">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <div className="bg-teal-600 p-1.5 rounded-lg">
               <MessageCircle size={18} className="text-white" />
             </div>
-            <span className="font-bold text-slate-800 tracking-tight text-lg">Chats</span>
+            <span className="font-bold text-slate-800 tracking-tight text-lg">Messages</span>
           </div>
           <Link to="/" className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-teal-600 transition-all">
             <Home size={20} />
@@ -90,7 +119,10 @@ export default function Chat() {
           {convos.map(c => (
             <div
               key={c.id}
-              onClick={() => setActiveConvo(c.id)}
+              onClick={() => {
+                setActiveConvo(c.id);
+                navigate(`/employer/chat/${c.id}`); // Keep URL in sync
+              }}
               className={`flex items-center gap-3 p-4 cursor-pointer transition-all border-b border-slate-50 ${
                 c.id === activeConvo 
                   ? "bg-white border-r-4 border-teal-500 shadow-sm" 
@@ -105,7 +137,14 @@ export default function Chat() {
                   <span className="font-bold text-sm text-slate-900 truncate">{c.name}</span>
                   <span className="text-[10px] text-slate-400 font-medium">{c.time}</span>
                 </div>
-                <div className="text-xs text-slate-500 truncate">{c.preview}</div>
+                <div className="text-xs text-slate-500 truncate">
+                    {c.unread > 0 ? (
+                        <span className="bg-teal-500 text-white text-[10px] px-1.5 py-0.5 rounded-full mr-2">
+                            {c.unread} new
+                        </span>
+                    ) : null}
+                    {c.preview}
+                </div>
               </div>
             </div>
           ))}
@@ -115,7 +154,7 @@ export default function Chat() {
       {/* 2. Main Chat Area */}
       <div className="flex-1 flex flex-col bg-white">
         
-        {/* Header with BACK button */}
+        {/* Header */}
         {active && (
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shadow-sm z-10">
             <div className="flex items-center gap-3">
@@ -131,7 +170,6 @@ export default function Chat() {
               </div>
             </div>
 
-            {/* NEW BACK BUTTON REPLACING PROFILE */}
             <div className="flex items-center gap-3">
               <Link 
                 to={getDashboardPath()} 
@@ -144,13 +182,15 @@ export default function Chat() {
           </div>
         )}
 
-        {/* Messages */}
+        {/* Message Thread */}
         <div className="flex-1 overflow-y-auto p-8 bg-[#F8FAFC] flex flex-col gap-6">
           {messages.map(m => (
             <div key={m.id} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
               <div className="max-w-[70%]">
                 <div className={`px-5 py-3 rounded-2xl text-[14px] shadow-sm leading-relaxed ${
-                  m.from === "me" ? "bg-[#1A2E35] text-white rounded-tr-none" : "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
+                  m.from === "me" 
+                    ? "bg-[#1A2E35] text-white rounded-tr-none" 
+                    : "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
                 }`}>
                   {m.text}
                 </div>
@@ -163,7 +203,7 @@ export default function Chat() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
+        {/* Input Bar */}
         <div className="p-6 bg-white border-t border-slate-100">
           <div className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-50 rounded-2xl p-2 border border-slate-200">
             <input
