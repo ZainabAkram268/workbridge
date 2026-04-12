@@ -1,13 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./index.html", "./src/**/*.{js,jsx}"],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        teal: { DEFAULT:"#5ecfb8", dark:"#2a9d8f", light:"#d6f5ef" },
+        teal: "#0d9488",
+        "teal-light": "#ccfbf1",
+        "teal-dark": "#0f766e",
       },
-      fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
-    }
+    },
   },
   plugins: [],
 };
