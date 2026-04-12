@@ -66,54 +66,9 @@ export default function WorkerNotifications() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
 
-      {/* ── Sidebar ── */}
-      <aside
-        className="fixed top-0 left-0 h-full bg-white border-r border-gray-100 shadow-sm flex flex-col z-20"
-        style={{ width: 232 }}
-      >
-        <div className="p-5 mb-2">
-          <Link to="/" className="text-xl font-bold text-gray-900 no-underline">
-            Work<span className="text-teal-dark">Bridge</span>
-          </Link>
-        </div>
-
-        <nav className="flex flex-col gap-1 px-3">
-          {NAV.map(item => (
-            <Link
-              key={item.label}
-              to={item.to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 no-underline
-                ${item.active
-                  ? "bg-teal-light text-teal-dark"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-              {item.active && unreadCount > 0 && (
-                <span className="ml-auto bg-teal-dark text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex-1" />
-
-        <div className="p-3 border-t border-gray-100">
-          <button
-            onClick={logout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-all duration-150 w-full"
-          >
-            <LogOut size={18} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 p-8" style={{ marginLeft: 232 }}>
+      <main className="flex-1 p-8" style={{ marginLeft: 100 }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

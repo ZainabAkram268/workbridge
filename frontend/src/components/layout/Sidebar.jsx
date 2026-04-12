@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import {
   Briefcase, User, Bell, LayoutDashboard,
-  ShieldCheck, BarChart3, LogOut, MessageSquare, 
+  ShieldCheck, BarChart3, LogOut, MessageSquare,
   PlusCircle, Users
 } from "lucide-react";
 
@@ -36,9 +36,11 @@ export default function Sidebar({ role = "worker" }) {
   const links = role === "admin" ? ADMIN_LINKS : role === "employer" ? EMPLOYER_LINKS : WORKER_LINKS;
 
   return (
-    <aside className="fixed top-0 left-0 z-40 w-[240px] h-screen bg-[#0F172A] text-slate-400 flex flex-col shadow-2xl border-none">
+    // KEY FIX: No more fixed/absolute. It's a normal flex child.
+    // h-full fills the row below navbar. overflow-y-auto handles long nav lists.
+    <aside className="w-[240px] shrink-0 h-full bg-[#0F172A] text-slate-400 flex flex-col shadow-2xl overflow-y-auto">
       
-      {/* 1. Header Section */}
+      {/* Header */}
       <div className="px-6 py-8">
         <Link to="/" className="flex flex-col no-underline group">
           <span className="text-xl font-black text-white tracking-tight flex items-center gap-1">
@@ -50,27 +52,25 @@ export default function Sidebar({ role = "worker" }) {
         </Link>
       </div>
 
-      {/* 2. Navigation Section */}
+      {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
         {links.map(({ label, Icon, to }) => {
           const active = pathname.startsWith(to);
           return (
-            <Link 
-              key={label} 
+            <Link
+              key={label}
               to={to}
               className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 no-underline
-                ${active 
-                  ? "bg-slate-800 text-white shadow-lg shadow-black/20" 
+                ${active
+                  ? "bg-slate-800 text-white shadow-lg shadow-black/20"
                   : "hover:bg-slate-800/40 hover:text-slate-200"
                 }`}
             >
-              <Icon 
-                size={18} 
-                className={`transition-colors duration-200 ${active ? "text-teal-400" : "text-slate-500 group-hover:text-slate-300"}`} 
+              <Icon
+                size={18}
+                className={`transition-colors duration-200 ${active ? "text-teal-400" : "text-slate-500 group-hover:text-slate-300"}`}
               />
               <span className="flex-1 tracking-wide">{label}</span>
-              
-              {/* Active Indicator (The Dot) */}
               {active && (
                 <div className="w-1.5 h-1.5 rounded-full bg-teal-400 shadow-[0_0_12px_rgba(45,212,191,0.8)]" />
               )}
@@ -79,7 +79,7 @@ export default function Sidebar({ role = "worker" }) {
         })}
       </nav>
 
-      {/* 3. Footer / Logout Section */}
+      {/* Logout */}
       <div className="p-4 border-t border-slate-800/30">
         <button
           onClick={() => { logout(); navigate("/"); }}

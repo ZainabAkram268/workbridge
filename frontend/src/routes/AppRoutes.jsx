@@ -66,7 +66,8 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* --- PUBLIC ROUTES --- */}
-      <Route path="/" element={user ? <Navigate to={getDashboard(user.role)} replace /> : <Home />} />
+      <Route path="/" element={<Home />} />
+      
       <Route path="/login" element={user ? <Navigate to={getDashboard(user.role)} replace /> : <Login />} />
       <Route path="/register/worker" element={<WorkerRegister />} />
       <Route path="/register/employer" element={<EmployerRegister />} />
@@ -76,9 +77,9 @@ export default function AppRoutes() {
         <Route path="/worker/dashboard" element={withWrapper(WorkerDashboard)} />
         <Route path="/worker/profile" element={withWrapper(WorkerProfile, { maxWidth: 1000 })} />
         <Route path="/worker/notifications" element={withWrapper(WorkerNotifications)} />
-        {/* In AppRoutes.jsx */}
+        {/* FIXED: Added '?' to make jobId optional so /worker/chat works */}
         <Route 
-          path="/worker/chat/:jobId" 
+          path="/worker/chat/:jobId?" 
           element={withWrapper(Chat, { fluid: true })} 
         />
       </Route>
@@ -89,10 +90,9 @@ export default function AppRoutes() {
         <Route path="/employer/workers/:id" element={withWrapper(WorkerPublicProfile)} />
         <Route path="/employer/hire/:workerId" element={withWrapper(SendJobRequest)} />
         <Route path="/employer/jobs" element={withWrapper(JobRequests)} />
-        {/* For Employers */}
         <Route 
           path="/employer/chat/:jobId?" 
-         element={withWrapper(Chat, { fluid: true })} 
+          element={withWrapper(Chat, { fluid: true })} 
         />
         <Route path="/employer/notifications" element={withWrapper(EmployerNotifications)} />
       </Route>
@@ -102,6 +102,7 @@ export default function AppRoutes() {
         <Route path="/admin/dashboard" element={withWrapper(AdminDashboard)} />
       </Route>
 
+      {/* Catch-all redirect to Home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

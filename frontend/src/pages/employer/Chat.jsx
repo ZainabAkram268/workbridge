@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { useAuth } from "../../hooks/useAuth"; 
 import { 
   MessageCircle, Send, Circle, Info, 
-  Home, LogOut, User, ChevronLeft 
+  Home, LogOut, User, ArrowLeft 
 } from "lucide-react";
 
 // Helper for initials
@@ -27,18 +28,25 @@ const MOCK_MSGS = [
 export default function Chat() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const [activeConvo, setActiveConvo] = useState(jobId || "j1");
+  const { user } = useAuth(); 
+  
+  // Default to first convo if no ID in URL
+  const [activeConvo, setActiveConvo] = useState(jobId || MOCK_CONVOS[0].id);
   const [messages, setMessages] = useState(MOCK_MSGS);
   const [text, setText] = useState("");
   const [convos, setConvos] = useState(MOCK_CONVOS);
   const bottomRef = useRef();
 
-  // Auto-scroll to bottom
+  // Determine dashboard path based on role
+  const getDashboardPath = () => {
+    if (!user) return "/";
+    return user.role === "admin" ? "/admin/dashboard" : `/${user.role}/dashboard`;
+  };
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // API Fetch Logic
   useEffect(() => {
     if (!activeConvo) return;
     api.get(`/chat/${activeConvo}`)
@@ -64,10 +72,8 @@ export default function Chat() {
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
       
-      {/* 1. Internal Conversation Sidebar */}
+      {/* 1. Sidebar */}
       <div className="w-80 border-r border-slate-100 flex flex-col bg-slate-50/30">
-        
-        {/* Chat-Specific Navigation Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <div className="bg-teal-600 p-1.5 rounded-lg">
@@ -75,18 +81,11 @@ export default function Chat() {
             </div>
             <span className="font-bold text-slate-800 tracking-tight text-lg">Chats</span>
           </div>
-          
-          {/* Exit to Dashboard Button */}
-          <Link 
-            to="/" 
-            className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-teal-600 transition-all"
-            title="Return Home"
-          >
+          <Link to="/" className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-teal-600 transition-all">
             <Home size={20} />
           </Link>
         </div>
         
-        {/* Conversation List */}
         <div className="flex-1 overflow-y-auto">
           {convos.map(c => (
             <div
@@ -108,11 +107,6 @@ export default function Chat() {
                 </div>
                 <div className="text-xs text-slate-500 truncate">{c.preview}</div>
               </div>
-              {c.unread > 0 && (
-                <div className="bg-teal-500 text-white rounded-full min-w-[18px] h-[18px] text-[10px] font-black flex items-center justify-center px-1">
-                  {c.unread}
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -121,15 +115,12 @@ export default function Chat() {
       {/* 2. Main Chat Area */}
       <div className="flex-1 flex flex-col bg-white">
         
-        {/* Active Chat Header */}
+        {/* Header with BACK button */}
         {active && (
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shadow-sm z-10">
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold border-2 border-white">
-                  {initials(active.name)}
-                </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+              <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold">
+                {initials(active.name)}
               </div>
               <div>
                 <div className="font-bold text-slate-900 leading-none mb-1">{active.name}</div>
@@ -140,32 +131,30 @@ export default function Chat() {
               </div>
             </div>
 
-            {/* Quick Navigation Actions */}
-            <div className="flex items-center gap-2">
-              <Link to="/profile" className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all flex items-center gap-2 text-xs font-bold uppercase">
-                <User size={16} /> Profile
+            {/* NEW BACK BUTTON REPLACING PROFILE */}
+            <div className="flex items-center gap-3">
+              <Link 
+                to={getDashboardPath()} 
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase transition-all no-underline"
+              >
+                <ArrowLeft size={16} />
+                Back to Dashboard
               </Link>
-              <div className="w-px h-4 bg-slate-200 mx-1"></div>
-              <button className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex items-center gap-2 text-xs font-bold uppercase">
-                <LogOut size={16} /> Logout
-              </button>
             </div>
           </div>
         )}
 
-        {/* Message History */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-8 bg-[#F8FAFC] flex flex-col gap-6">
           {messages.map(m => (
             <div key={m.id} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[70%] group`}>
+              <div className="max-w-[70%]">
                 <div className={`px-5 py-3 rounded-2xl text-[14px] shadow-sm leading-relaxed ${
-                  m.from === "me" 
-                  ? "bg-slate-900 text-white rounded-tr-none" 
-                  : "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
+                  m.from === "me" ? "bg-[#1A2E35] text-white rounded-tr-none" : "bg-white border border-slate-200 text-slate-800 rounded-tl-none"
                 }`}>
                   {m.text}
                 </div>
-                <div className={`text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-tighter ${m.from === "me" ? "text-right" : "text-left"}`}>
+                <div className={`text-[10px] text-slate-400 mt-2 font-bold uppercase ${m.from === "me" ? "text-right" : "text-left"}`}>
                   {m.time}
                 </div>
               </div>
@@ -174,9 +163,9 @@ export default function Chat() {
           <div ref={bottomRef} />
         </div>
 
-        {/* Bottom Input Area */}
+        {/* Input */}
         <div className="p-6 bg-white border-t border-slate-100">
-          <div className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-50 rounded-2xl p-2 border border-slate-200 focus-within:border-teal-500 focus-within:bg-white focus-within:shadow-md transition-all duration-300">
+          <div className="max-w-4xl mx-auto flex items-center gap-4 bg-slate-50 rounded-2xl p-2 border border-slate-200">
             <input
               type="text"
               value={text}
@@ -187,14 +176,10 @@ export default function Chat() {
             />
             <button
               onClick={sendMsg}
-              disabled={!text.trim()}
-              className="w-11 h-11 bg-teal-600 hover:bg-teal-700 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-30 shadow-lg shadow-teal-100"
+              className="w-11 h-11 bg-teal-600 hover:bg-teal-700 text-white rounded-xl flex items-center justify-center transition-all"
             >
               <Send size={20} />
             </button>
-          </div>
-          <div className="mt-3 flex justify-center items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest gap-2">
-            <Info size={12} className="text-teal-500" /> End-to-end encrypted · {text.length}/500
           </div>
         </div>
       </div>
