@@ -3,16 +3,35 @@ import { useNavigate, Link } from "react-router-dom";
 import api from "../../services/api";
 import { Check, Smartphone } from "lucide-react";
 
+// ── block non-alpha keys on name field ───────────────────────
+const blockNonAlpha = (e) => {
+  if (
+    !/^[a-zA-Z\s]$/.test(e.key) &&
+    !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
+  ) {
+    e.preventDefault();
+  }
+};
+
+// ── phone formatter ──────────────────────────────────────────
+const formatPhone = (v) => {
+  const digits = v.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 4) return digits;
+  return digits.slice(0, 4) + "-" + digits.slice(4);
+};
+
 export default function EmployerRegister() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({ fullName: "", phone: "", email: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({
+    fullName: "", phone: "", email: "", password: "", confirmPassword: "",
+  });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
   const otpRefs = React.useRef([]);
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   React.useEffect(() => {
     if (step !== 1 || resendTimer <= 0) return;
@@ -20,15 +39,67 @@ export default function EmployerRegister() {
     return () => clearTimeout(t);
   }, [resendTimer, step]);
 
+  const setField = (k, v) => {
+    // ── live formatting & validation ──
+    if (k === "fullName") {
+      v = v.replace(/[^a-zA-Z\s]/g, "").slice(0, 60);
+    }
+    if (k === "phone") {
+      v = formatPhone(v);
+      const digits = v.replace(/\D/g, "");
+      if (digits.length >= 2 && !digits.startsWith("03"))
+        setFieldErrors((e) => ({ ...e, phone: "Phone must start with 03." }));
+      else
+        setFieldErrors((e) => ({ ...e, phone: undefined }));
+    }
+    if (k === "email" && v.length > 0) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))
+        setFieldErrors((e) => ({ ...e, email: "Enter a valid email address." }));
+      else
+        setFieldErrors((e) => ({ ...e, email: undefined }));
+    } else if (k === "email") {
+      setFieldErrors((e) => ({ ...e, email: undefined }));
+    }
+    if (k === "password") {
+      if (v.length > 0 && v.length < 8)
+        setFieldErrors((e) => ({ ...e, password: "Password must be at least 8 characters." }));
+      else
+        setFieldErrors((e) => ({ ...e, password: undefined }));
+    }
+    if (k === "confirmPassword") {
+      // use functional updater to read latest password
+      setForm((f) => {
+        if (v !== f.password)
+          setFieldErrors((e) => ({ ...e, confirmPassword: "Passwords do not match." }));
+        else
+          setFieldErrors((e) => ({ ...e, confirmPassword: undefined }));
+        return f;
+      });
+    }
+    setForm((f) => ({ ...f, [k]: v }));
+  };
+
+  const validate = () => {
+    const errs = {};
+    if (!form.fullName.trim() || form.fullName.trim().length < 3)
+      errs.fullName = "Full name must be at least 3 letters.";
+    if (!form.phone.trim() || !/^03[0-9]{2}-[0-9]{7}$/.test(form.phone.trim()))
+      errs.phone = "Enter valid format: 03XX-XXXXXXX.";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      errs.email = "Enter a valid email address.";
+    if (!form.password || form.password.length < 8)
+      errs.password = "Password must be at least 8 characters.";
+    if (form.password !== form.confirmPassword)
+      errs.confirmPassword = "Passwords do not match.";
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!validate()) return;
     setLoading(true);
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match");
-      setLoading(false);
-      return;
-    }
     try {
       await api.post("/auth/register/employer", {
         fullName: form.fullName,
@@ -68,6 +139,13 @@ export default function EmployerRegister() {
       setLoading(false);
     }
   };
+
+  const inputClass = (key) =>
+    `w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-colors ${
+      fieldErrors[key]
+        ? "border-red-400 focus:ring-red-300 bg-red-50"
+        : "border-gray-300 focus:ring-teal"
+    }`;
 
   const features = [
     "Access CNIC-verified worker profiles",
@@ -115,71 +193,107 @@ export default function EmployerRegister() {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+
+                {/* Full Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                    name="fullName"
+                    autoComplete="off"
+                    className={inputClass("fullName")}
                     placeholder="Saqib Aslam"
                     value={form.fullName}
-                    onChange={(e) => set("fullName", e.target.value)}
+                    onKeyDown={blockNonAlpha}
+                    onChange={(e) => setField("fullName", e.target.value)}
                     required
                   />
+                  {fieldErrors.fullName
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.fullName}</p>
+                    : <p className="text-xs text-gray-400 mt-1">Letters only</p>}
                 </div>
+
+                {/* Phone */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number <span className="text-red-500">*</span>{" "}
                     <span className="text-gray-400 font-normal">(WhatsApp)</span>
                   </label>
                   <input
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                    name="phone"
+                    type="tel"
+                    autoComplete="off"
+                    className={inputClass("phone")}
                     placeholder="0334-1234567"
                     value={form.phone}
-                    onChange={(e) => set("phone", e.target.value)}
+                    onChange={(e) => setField("phone", e.target.value)}
                     required
                   />
+                  {fieldErrors.phone
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>
+                    : <p className="text-xs text-gray-400 mt-1">e.g. 0334-1234567</p>}
                 </div>
+
+                {/* Email */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email Address{" "}
                     <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <input
+                    name="email"
                     type="email"
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                    autoComplete="off"
+                    className={inputClass("email")}
                     placeholder="email@example.com"
                     value={form.email}
-                    onChange={(e) => set("email", e.target.value)}
+                    onChange={(e) => setField("email", e.target.value)}
                   />
+                  {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
                 </div>
+
+                {/* Password */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Password <span className="text-red-500">*</span>
                   </label>
                   <input
+                    name="password"
                     type="password"
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
-                    placeholder="Min 8 chars with special character"
+                    autoComplete="new-password"
+                    className={inputClass("password")}
+                    placeholder="Min 8 characters"
                     value={form.password}
-                    onChange={(e) => set("password", e.target.value)}
+                    onChange={(e) => setField("password", e.target.value)}
                     required
                   />
+                  {fieldErrors.password
+                    ? <p className="text-xs text-red-500 mt-1">{fieldErrors.password}</p>
+                    : <p className="text-xs text-gray-400 mt-1">At least 8 characters</p>}
                 </div>
+
+                {/* Confirm Password */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Confirm Password <span className="text-red-500">*</span>
                   </label>
                   <input
+                    name="confirmPassword"
                     type="password"
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
+                    autoComplete="new-password"
+                    className={inputClass("confirmPassword")}
                     placeholder="Re-enter password"
                     value={form.confirmPassword}
-                    onChange={(e) => set("confirmPassword", e.target.value)}
+                    onChange={(e) => setField("confirmPassword", e.target.value)}
                     required
                   />
+                  {fieldErrors.confirmPassword && (
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.confirmPassword}</p>
+                  )}
                 </div>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -212,13 +326,13 @@ export default function EmployerRegister() {
                 Verification
               </span>
               <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Enter OTP Code</h2>
-              <p className="text-sm text-gray-500 mb-7">
+              <p className="text-sm text-gray-500 mb-1">
                 A 6-digit code has been sent to <strong>{form.phone}</strong>
               </p>
+              {/* ── Mock OTP hint ── */}
+              <p className="text-xs text-teal-600 font-medium mb-6">(Demo: use 1 2 3 4 5 6)</p>
 
-              {error && (
-                <p className="text-red-600 text-sm mb-4">{error}</p>
-              )}
+              {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
 
               <div className="flex gap-3 justify-center mb-6">
                 {otpDigits.map((d, i) => (
