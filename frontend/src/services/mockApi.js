@@ -1,6 +1,4 @@
 // src/services/mockApi.js
-// Drop-in replacement for the real axios api instance.
-
 import {
   mockEmployerToken,
   mockWorkerToken,
@@ -13,54 +11,45 @@ import {
   mockServiceTypes,
   mockDashboardMetrics,
   mockWorkerProfile,
+  mockAllWorkers,
 } from "./mockData";
 
 const delay = (ms = 400) => new Promise((res) => setTimeout(res, ms));
 
-// ─── POST ────────────────────────────────────────────────────────────────────
+// ─── POST ─────────────────────────────────────────────────────────────────────
 const post = async (url, data) => {
 
-  // LOGIN — returns a real decodable JWT so AuthContext works correctly
-  // password "worker123" → worker, "admin123" → admin, else → employer
   if (url === "/auth/login") {
     await delay();
     let token = mockEmployerToken;
     if (data.password === "worker123") token = mockWorkerToken;
     else if (data.password === "admin123") token = mockAdminToken;
-
-    // Also derive role for Login.jsx's ROLE_REDIRECT
     let role = "employer";
     if (data.password === "worker123") role = "worker";
     else if (data.password === "admin123") role = "admin";
-
     return { token, role };
   }
 
-  // VERIFY OTP — any 6 digits accepted
   if (url === "/auth/verify-otp") {
     await delay();
     return { message: "OTP verified successfully" };
   }
 
-  // RESEND OTP
   if (url === "/auth/resend-otp") {
     await delay();
     return { message: "OTP resent successfully" };
   }
 
-  // REGISTER EMPLOYER
   if (url === "/auth/register/employer") {
     await delay(600);
     return { message: "Employer registered. OTP sent.", phone: data.phone };
   }
 
-  // REGISTER WORKER
   if (url === "/auth/register/worker") {
     await delay(600);
     return { message: "Worker registered. Pending admin approval.", phone: data.phone };
   }
 
-  // SEND JOB REQUEST
   if (url === "/employer/jobs") {
     await delay();
     return {
@@ -73,21 +62,34 @@ const post = async (url, data) => {
     };
   }
 
-  // RATE WORKER
   if (url.includes("/rate")) {
     await delay();
     return { message: "Rating submitted successfully" };
+  }
+
+  // ADMIN CREATE WORKER
+  if (url === "/admin/workers/create") {
+    await delay(500);
+    const newWorker = {
+      _id: "aw_" + Date.now(),
+      userId: { fullName: data.fullName },
+      phone: data.phone,
+      preferredCity: data.preferredCity,
+      services: [],
+      status: "admin_created",
+    };
+    mockAllWorkers.push(newWorker);
+    return { message: "Worker created successfully", worker: newWorker };
   }
 
   await delay();
   return { message: "Success" };
 };
 
-// ─── GET ─────────────────────────────────────────────────────────────────────
+// ─── GET ──────────────────────────────────────────────────────────────────────
 const get = async (url, config) => {
   const filters = config?.params || {};
 
-  // EMPLOYER SEARCH WORKERS
   if (url === "/employer/workers") {
     let results = [...mockWorkers];
     if (filters.serviceType) {
@@ -106,10 +108,8 @@ const get = async (url, config) => {
     return delay().then(() => results);
   }
 
-  // ALL JOBS
   if (url === "/jobs") return delay().then(() => mockJobs);
 
-  // SPECIFIC JOB
   if (url.match(/^\/jobs\/[\w]+$/)) {
     const id = url.split("/").pop();
     return delay().then(
@@ -117,44 +117,56 @@ const get = async (url, config) => {
     );
   }
 
-  // EMPLOYER JOBS
   if (url === "/employer/jobs") return delay().then(() => mockJobs);
-
-  // WORKER JOBS
-  if (url === "/workers/jobs") return delay().then(() => mockWorkerJobs);
-
-  // NOTIFICATIONS
+  if (url === "/workers/jobs")  return delay().then(() => mockWorkerJobs);
   if (url === "/notifications") return delay().then(() => mockNotifications);
-
-  // SERVICE TYPES
   if (url === "/service-types") return delay().then(() => mockServiceTypes);
-
-  // ADMIN DASHBOARD
   if (url === "/admin/dashboard") return delay().then(() => mockDashboardMetrics);
 
-  // ADMIN PENDING WORKERS
-  if (url === "/admin/workers/pending") return delay().then(() => mockDashboardMetrics.recentWorkers);
+  if (url === "/admin/workers/pending")
+    return delay().then(() => mockDashboardMetrics.recentWorkers);
 
-  // WORKER PUBLIC PROFILE
+  // ADMIN ALL WORKERS
+  if (url === "/admin/workers") return delay().then(() => [...mockAllWorkers]);
+
   if (url.match(/^\/workers\/[\w]+\/profile$/)) return delay().then(() => mockWorkerProfile);
-
-  // WORKER OWN PROFILE
   if (url === "/workers/profile") return delay().then(() => mockWorkerProfile);
-
-  // MESSAGES
   if (url.match(/^\/messages\/[\w]+$/)) return delay().then(() => mockMessages);
 
   return delay().then(() => []);
 };
 
-// ─── PATCH ───────────────────────────────────────────────────────────────────
+// ─── PATCH ────────────────────────────────────────────────────────────────────
 const patch = async (url, data) => {
   await delay(300);
-  if (url.includes("/cancel"))       return { message: "Job cancelled" };
-  if (url.includes("/confirm"))      return { message: "Job confirmed" };
-  if (url.includes("/accept"))       return { message: "Job accepted" };
-  if (url.includes("/reject"))       return { message: "Job rejected" };
-  if (url.includes("/done"))         return { message: "Job marked as done" };
+  if (url.includes("/cancel"))  return { message: "Job cancelled" };
+  if (url.includes("/confirm")) return { message: "Job confirmed" };
+  if (url.includes("/accept"))  return { message: "Job accepted" };
+  if (url.includes("/done"))    return { message: "Job marked as done" };
+
+  // ✅ Worker approve — move from pending to allWorkers as verified
+  if (url.match(/\/admin\/workers\/.+\/approve/)) {
+    const id = url.split("/")[3];
+    const idx = mockDashboardMetrics.recentWorkers.findIndex((w) => w._id === id);
+    if (idx !== -1) {
+      const [worker] = mockDashboardMetrics.recentWorkers.splice(idx, 1);
+      mockAllWorkers.push({ ...worker, status: "verified" });
+    }
+    return { message: "Worker approved" };
+  }
+
+  // ✅ Worker reject — move from pending to allWorkers as rejected
+  if (url.match(/\/admin\/workers\/.+\/reject/)) {
+    const id = url.split("/")[3];
+    const idx = mockDashboardMetrics.recentWorkers.findIndex((w) => w._id === id);
+    if (idx !== -1) {
+      const [worker] = mockDashboardMetrics.recentWorkers.splice(idx, 1);
+      mockAllWorkers.push({ ...worker, status: "rejected" });
+    }
+    return { message: "Worker rejected" };
+  }
+
+  if (url.includes("/reject"))  return { message: "Job rejected" };
   if (url === "/workers/availability") return { message: "Availability updated" };
   return { message: "Updated successfully" };
 };
@@ -163,7 +175,7 @@ const patch = async (url, data) => {
 const put = async (url, data) => { await delay(400); return { message: "Updated" }; };
 const del = async (url)        => { await delay(300); return { message: "Deleted" }; };
 
-// ─── MOCK SOCKET (for useChat) ────────────────────────────────────────────────
+// ─── MOCK SOCKET ──────────────────────────────────────────────────────────────
 export const mockSocket = {
   _listeners: {},
   emit(event, ...args) {
@@ -191,11 +203,8 @@ export const mockSocket = {
     if (!this._listeners[event]) this._listeners[event] = [];
     this._listeners[event].push(handler);
   },
-  off(event) {
-    this._listeners[event] = [];
-  },
+  off(event) { this._listeners[event] = []; },
 };
 
-// ─── DEFAULT EXPORT ───────────────────────────────────────────────────────────
 const mockApi = { get, post, patch, put, delete: del };
 export default mockApi;
