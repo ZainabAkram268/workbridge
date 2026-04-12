@@ -1,7 +1,7 @@
-//EmployerRegister.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../../services/api";
+import { Check, Smartphone } from "lucide-react";
 
 export default function EmployerRegister() {
   const navigate = useNavigate();
@@ -91,7 +91,7 @@ export default function EmployerRegister() {
         <ul className="space-y-3">
           {features.map((item) => (
             <li key={item} className="flex items-center gap-3">
-              <span className="text-teal font-bold">✓</span>
+              <Check className="w-4 h-4 text-teal flex-shrink-0" />
               <span className="text-gray-300 text-sm">{item}</span>
             </li>
           ))}
@@ -205,7 +205,9 @@ export default function EmployerRegister() {
           ) : (
             /* OTP Step */
             <div className="text-center">
-              <div className="text-5xl mb-4">📱</div>
+              <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="w-8 h-8 text-teal" />
+              </div>
               <span className="inline-block bg-teal-light text-teal-dark text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4">
                 Verification
               </span>

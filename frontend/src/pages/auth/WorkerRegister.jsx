@@ -1,18 +1,21 @@
-//WorkerRegister.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../../services/api";
+import {
+  HardHat, Car, Home, Leaf, Baby, ChefHat, Zap, Wrench, Shield,
+  Camera, Smartphone, Check, ArrowLeft, ArrowRight,
+} from "lucide-react";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SERVICES = [
-  { id: "cleaner",     emoji: "🧹", label: "Domestic Helpers" },
-  { id: "driver",      emoji: "🚗", label: "Drivers"           },
-  { id: "gardener",    emoji: "🌱", label: "Gardeners"         },
-  { id: "babysitter",  emoji: "👶", label: "Babysitters"       },
-  { id: "cook",        emoji: "👨‍🍳", label: "Cooks"            },
-  { id: "electrician", emoji: "⚡", label: "Electricians"     },
-  { id: "plumber",     emoji: "🔧", label: "Plumbers"          },
-  { id: "security",    emoji: "🛡️", label: "Security Guards"  },
+  { id: "cleaner",     icon: <Home      className="w-6 h-6" />, label: "Domestic Helpers" },
+  { id: "driver",      icon: <Car       className="w-6 h-6" />, label: "Drivers"           },
+  { id: "gardener",    icon: <Leaf      className="w-6 h-6" />, label: "Gardeners"         },
+  { id: "babysitter",  icon: <Baby      className="w-6 h-6" />, label: "Babysitters"       },
+  { id: "cook",        icon: <ChefHat  className="w-6 h-6" />, label: "Cooks"             },
+  { id: "electrician", icon: <Zap       className="w-6 h-6" />, label: "Electricians"     },
+  { id: "plumber",     icon: <Wrench    className="w-6 h-6" />, label: "Plumbers"          },
+  { id: "security",    icon: <Shield    className="w-6 h-6" />, label: "Security Guards"  },
 ];
 const CITIES = ["Lahore", "Karachi", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
 const STEPS = ["Personal Info", "Services", "Availability", "Documents", "Verify OTP"];
@@ -123,7 +126,9 @@ export default function WorkerRegister() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-3xl mb-2">👷</div>
+          <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <HardHat className="w-6 h-6 text-teal" />
+          </div>
           <h1 className="text-2xl font-extrabold text-gray-900">Worker Registration</h1>
           <p className="text-sm text-gray-500 mt-1">Complete all steps to create your profile</p>
         </div>
@@ -142,7 +147,7 @@ export default function WorkerRegister() {
                       : "bg-gray-200 text-gray-500"
                   }`}
                 >
-                  {i < step ? "✓" : i + 1}
+                  {i < step ? <Check className="w-4 h-4" /> : i + 1}
                 </div>
                 <span className="text-[10px] text-gray-500 text-center leading-tight hidden sm:block">{label}</span>
               </div>
@@ -207,8 +212,8 @@ export default function WorkerRegister() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors">
-                  Next →
+                <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors flex items-center gap-2">
+                  Next <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>
@@ -233,18 +238,18 @@ export default function WorkerRegister() {
                           : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
                       }`}
                     >
-                      <span className="text-2xl">{s.emoji}</span>
+                      <span className={selected ? "text-teal-dark" : "text-gray-400"}>{s.icon}</span>
                       <span className="text-center text-xs leading-tight">{s.label}</span>
                     </button>
                   );
                 })}
               </div>
               <div className="flex justify-between pt-2">
-                <button type="button" onClick={() => setStep((s) => s - 1)} className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors">
-                  ← Back
+                <button type="button" onClick={() => setStep((s) => s - 1)} className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" /> Back
                 </button>
-                <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors">
-                  Next →
+                <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors flex items-center gap-2">
+                  Next <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>
@@ -297,8 +302,12 @@ export default function WorkerRegister() {
                 </div>
               </div>
               <div className="flex justify-between pt-2">
-                <button type="button" onClick={() => setStep((s) => s - 1)} className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors">← Back</button>
-                <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors">Next →</button>
+                <button type="button" onClick={() => setStep((s) => s - 1)} className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+                <button type="submit" className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors flex items-center gap-2">
+                  Next <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </form>
           )}
@@ -318,14 +327,14 @@ export default function WorkerRegister() {
                   </label>
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-teal transition-colors">
                     {form[key] ? (
-                      <div className="text-sm text-gray-600">
-                        <span className="text-green-600 font-semibold">✓ </span>
+                      <div className="text-sm text-gray-600 flex items-center justify-center gap-2">
+                        <Check className="w-4 h-4 text-green-600" />
                         {form[key].name}
                         <button type="button" onClick={() => set(key, null)} className="ml-2 text-red-500 text-xs underline">Remove</button>
                       </div>
                     ) : (
                       <>
-                        <div className="text-gray-400 text-3xl mb-2">📷</div>
+                        <Camera className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                         <label className="cursor-pointer text-sm text-teal-dark font-semibold hover:underline">
                           Click to upload
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => set(key, e.target.files[0])} />
@@ -337,7 +346,9 @@ export default function WorkerRegister() {
                 </div>
               ))}
               <div className="flex justify-between pt-2">
-                <button type="button" onClick={() => setStep((s) => s - 1)} className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors">← Back</button>
+                <button type="button" onClick={() => setStep((s) => s - 1)} className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
                 <button type="submit" disabled={loading} className="bg-gray-900 hover:bg-gray-800 text-white font-semibold px-7 py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? "Submitting…" : "Submit & Get OTP"}
                 </button>
@@ -348,7 +359,9 @@ export default function WorkerRegister() {
           {/* Step 4 – OTP */}
           {step === 4 && (
             <div className="text-center py-4">
-              <div className="text-5xl mb-4">📱</div>
+              <div className="w-16 h-16 bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="w-8 h-8 text-teal" />
+              </div>
               <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Verify Your Phone</h2>
               <p className="text-sm text-gray-500 mb-7">
                 Enter the 6-digit code sent to <strong>{form.phone}</strong>

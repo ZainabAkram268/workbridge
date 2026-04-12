@@ -1,21 +1,21 @@
-//Login.jsx
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import { HardHat, Briefcase, Network } from "lucide-react";
 
 const ROLE_REDIRECT = {
   admin: "/admin/dashboard",
   worker: "/worker/dashboard",
-  employer: "employer/dashboard"
+  employer: "/employer/workers",
 };
 
 export default function Login() {
-  const [tab, setTab]         = useState("worker");
-  const [phone, setPhone]     = useState("");
+  const [tab, setTab]           = useState("worker");
+  const [phone, setPhone]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
   const { login } = useAuth();
   const navigate  = useNavigate();
 
@@ -40,7 +40,9 @@ export default function Login() {
 
         {/* Logo */}
         <div className="text-center mb-7">
-          <div className="text-4xl mb-2">🌉</div>
+          <div className="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Network className="w-6 h-6 text-teal" />
+          </div>
           <h1 className="text-2xl font-extrabold text-gray-900">Welcome Back</h1>
           <p className="text-sm text-gray-500 mt-1">Sign in to your WorkBridge account</p>
         </div>
@@ -48,19 +50,19 @@ export default function Login() {
         {/* Role tabs */}
         <div className="flex gap-2 bg-gray-100 rounded-xl p-1 mb-6">
           {[
-            { id: "worker",   label: "👷 Worker"   },
-            { id: "employer", label: "👨‍💼 Employer" },
+            { id: "worker",   label: "Worker",   icon: <HardHat   className="w-4 h-4" /> },
+            { id: "employer", label: "Employer",  icon: <Briefcase className="w-4 h-4" /> },
           ].map((r) => (
             <button
               key={r.id}
               onClick={() => setTab(r.id)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 ${
+              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 flex items-center justify-center gap-2 ${
                 tab === r.id
                   ? "bg-gray-900 text-white shadow"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              {r.label}
+              {r.icon} {r.label}
             </button>
           ))}
         </div>

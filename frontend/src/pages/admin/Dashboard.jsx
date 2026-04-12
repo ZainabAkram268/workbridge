@@ -1,284 +1,518 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import {
+  LayoutDashboard, ShieldCheck, HardHat, Briefcase, LogOut,
+  Users, UserCheck, CheckCircle, Clock,
+  ClipboardList, CircleCheck, Settings, PartyPopper, XCircle,
+  Plus,
+} from "lucide-react";
+import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
+import CreateWorkerModal from "../../components/admin/CreateWorkerModal";
+import WorkerReviewModal from "../../components/admin/WorkerReviewModal";
+import PendingWorkerRow from "../../components/admin/PendingWorkerRow";
 
-function initials(n="") { return n.split(" ").slice(0,2).map(p=>p[0]).join("").toUpperCase(); }
+function initials(n = "") {
+  return n.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
 
-const MOCK_METRICS = { totalWorkers:284, totalEmployers:631, activeWorkers:241, pendingVerifications:8, jobStats:{ today:{ Requested:14, Accepted:9, "In Progress":6, Completed:31, Rejected:3 } } };
+const MOCK_METRICS = {
+  totalWorkers: 48,
+  totalEmployers: 132,
+  activeWorkers: 0,
+  pendingVerifications: 0,
+  jobStats: {
+    today: { Requested: 14, Accepted: 9, "In Progress": 6, Completed: 31, Rejected: 3 },
+  },
+};
+
 const MOCK_PENDING = [
-  { _id:"w1", userId:{fullName:"Rizwan Ahmed"}, services:["Drivers","Gardeners"], submittedAt:"2025-03-12", daysWaiting:2, phone:"0301-2345678", preferredCity:"Lahore" },
-  { _id:"w2", userId:{fullName:"Amna Bibi"},    services:["Domestic Helpers","Cooks"], submittedAt:"2025-03-13", daysWaiting:1, phone:"0321-9876543", preferredCity:"Karachi" },
-  { _id:"w3", userId:{fullName:"Tariq Mehmood"},services:["Plumbers"], submittedAt:"2025-03-14", daysWaiting:0, phone:"0333-1234567", preferredCity:"Islamabad" },
+  { _id: "w1", userId: { fullName: "Rizwan Ahmed" }, services: ["Drivers", "Gardeners"], submittedAt: "2025-03-12", daysWaiting: 2, phone: "0301-2345678", preferredCity: "Lahore" },
+  { _id: "w2", userId: { fullName: "Amna Bibi" }, services: ["Domestic Helpers", "Cooks"], submittedAt: "2025-03-13", daysWaiting: 1, phone: "0321-9876543", preferredCity: "Karachi" },
+  { _id: "w3", userId: { fullName: "Tariq Mehmood" }, services: ["Plumbers"], submittedAt: "2025-03-14", daysWaiting: 0, phone: "0333-1234567", preferredCity: "Islamabad" },
 ];
-const SERVICE_EMOJI = { Drivers:"🚗","Domestic Helpers":"🧹",Gardeners:"🌱",Babysitters:"👶",Cooks:"👨‍🍳",Electricians:"⚡",Plumbers:"🔧","Security Guards":"🛡️" };
-const STATUS_COLOR  = { Requested:"#fef9c3",Accepted:"#dcfce7","In Progress":"#dbeafe",Completed:"#d1fae5",Rejected:"#fee2e2" };
+
+const MOCK_ALL_WORKERS = [
+  { _id: "aw1", userId: { fullName: "Rizwan Ahmed" }, phone: "0301-2345678", preferredCity: "Lahore", services: ["Drivers", "Gardeners"], status: "verified" },
+  { _id: "aw2", userId: { fullName: "Amna Bibi" }, phone: "0321-9876543", preferredCity: "Karachi", services: ["Domestic Helpers", "Cooks"], status: "pending" },
+  { _id: "aw3", userId: { fullName: "Tariq Mehmood" }, phone: "0333-1234567", preferredCity: "Islamabad", services: ["Plumbers"], status: "verified" },
+  { _id: "aw4", userId: { fullName: "Sara Khan" }, phone: "0311-7654321", preferredCity: "Lahore", services: ["Babysitters"], status: "admin_created" },
+];
+
+// Teal / gray palette only
+const STATUS_COLORS = {
+  Requested:     "#111827",   // gray-900
+  Accepted:      "#14b8a6",   // teal-500
+  "In Progress": "#6b7280",   // gray-500
+  Completed:     "#0f766e",   // teal-700
+  Rejected:      "#d1d5db",   // gray-300
+};
+
+const STATUS_BG = {
+  Requested:     "bg-gray-100 text-gray-600",
+  Accepted:      "bg-gray-900 text-white",
+  "In Progress": "bg-gray-100 text-gray-600",
+  Completed:     "bg-teal-light text-teal-dark",
+  Rejected:      "bg-gray-200 text-gray-500",
+};
+
+const STATUS_ICON = {
+  Requested:    <ClipboardList className="w-4 h-4" />,
+  Accepted:     <CircleCheck   className="w-4 h-4" />,
+  "In Progress":<Settings      className="w-4 h-4" />,
+  Completed:    <PartyPopper   className="w-4 h-4" />,
+  Rejected:     <XCircle       className="w-4 h-4" />,
+};
+
+const BAR_COLOR = {
+  Completed:     "bg-teal-600",
+  Accepted:      "bg-teal-400",
+  "In Progress": "bg-gray-400",
+  Requested:     "bg-gray-700",
+  Rejected:      "bg-gray-300",
+};
 
 export default function AdminDashboard() {
   const { logout } = useAuth();
-  const [metrics, setMetrics]   = useState(MOCK_METRICS);
-  const [pending, setPending]   = useState(MOCK_PENDING);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [reviewing, setReviewing] = useState(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectId, setRejectId] = useState(null);
-  const [periodFilter, setPeriodFilter] = useState("today");
+  const [metrics, setMetrics]           = useState(MOCK_METRICS);
+  const [pending, setPending]           = useState(MOCK_PENDING);
+  const [allWorkers, setAllWorkers]     = useState(MOCK_ALL_WORKERS);
+  const [activeTab, setActiveTab]       = useState("overview");
+  const [reviewing, setReviewing]       = useState(null);
   const [createWorker, setCreateWorker] = useState(false);
-  const [newWorkerForm, setNewWorkerForm] = useState({ fullName:"", phone:"", cnicNumber:"", services:[], preferredCity:"Lahore" });
 
-  useEffect(() => {
-    api.get("/admin/dashboard").then(d=>{ if(d?.totalWorkers) setMetrics(d); }).catch(()=>{});
-    api.get("/admin/workers/pending").then(d=>{ if(d?.length) setPending(d); }).catch(()=>{});
-  }, []);
+  const fetchAllWorkers = () => {
+    api.get("/admin/workers")
+      .then((d) => { if (d?.length) setAllWorkers(d); })
+      .catch(() => {});
+  };
+
+ const fetchDashboard = () => {
+  api.get("/admin/dashboard")
+    .then((d) => {
+      if (d?.totalWorkers) {
+        setMetrics((prev) => ({ ...prev, ...d, jobStats: d.jobStats || prev.jobStats }));
+      }
+    })
+    .catch(() => {});
+};
+useEffect(() => {
+  fetchDashboard();
+  api.get("/admin/workers/pending").then((d) => { if (d?.length) setPending(d); }).catch(() => {});
+  fetchAllWorkers();
+
+  // ✅ Poll every 30s to pick up other members' job stat changes (Completed, In Progress, etc.)
+  const interval = setInterval(() => {
+    fetchDashboard();
+    fetchAllWorkers();
+  }, 30000);
+
+  return () => clearInterval(interval);
+}, []);
 
   const approve = async (id) => {
-    try { await api.patch(`/admin/workers/${id}/approve`); } catch {}
-    setPending(ps => ps.filter(p => p._id !== id));
-    setReviewing(null);
-  };
+  try { await api.patch(`/admin/workers/${id}/approve`); } catch {}
+  const approvedWorker = pending.find((p) => p._id === id);
+  setPending((ps) => ps.filter((p) => p._id !== id));
+  if (approvedWorker) {
+    setAllWorkers((prev) => [...prev, { ...approvedWorker, status: "verified" }]);
+  }
+  setMetrics((prev) => ({
+    ...prev,
+    // ✅ Total workers goes up, pending review goes down
+    totalWorkers: (prev.totalWorkers || 0) + 1,
+    pendingVerifications: Math.max(0, (prev.pendingVerifications || 0) - 1),
+    // ✅ Active workers goes up (newly verified = active)
+    activeWorkers: (prev.activeWorkers || 0) + 1,
+    jobStats: {
+      ...prev.jobStats,
+      today: {
+        ...prev.jobStats.today,
+        Accepted: (prev.jobStats.today.Accepted || 0) + 1,
+      },
+    },
+  }));
+  setReviewing(null);
+};
 
-  const reject = async () => {
-    if (rejectReason.length < 20) return alert("Rejection reason must be at least 20 characters");
-    try { await api.patch(`/admin/workers/${rejectId}/reject`, { reason:rejectReason }); } catch {}
-    setPending(ps => ps.filter(p => p._id !== rejectId));
-    setRejectId(null); setRejectReason(""); setReviewing(null);
-  };
+const reject = async (id, reason) => {
+  try { await api.patch(`/admin/workers/${id}/reject`, { reason }); } catch {}
+  const rejectedWorker = pending.find((p) => p._id === id);
+  setPending((ps) => ps.filter((p) => p._id !== id));
+  if (rejectedWorker) {
+    setAllWorkers((prev) => [...prev, { ...rejectedWorker, status: "rejected" }]);
+  }
+  setMetrics((prev) => ({
+    ...prev,
+    // ✅ Pending review goes down, rejected worker NOT added to totalWorkers
+    pendingVerifications: Math.max(0, (prev.pendingVerifications || 0) - 1),
+    jobStats: {
+      ...prev.jobStats,
+      today: {
+        ...prev.jobStats.today,
+        Rejected: (prev.jobStats.today.Rejected || 0) + 1,
+      },
+    },
+  }));
+  setReviewing(null);
+};
 
-  const METRIC_CARDS = [
-    { label:"Total Workers",   value:metrics.totalWorkers,   icon:"👷", color:"#dbeafe", textColor:"#1e40af" },
-    { label:"Total Employers", value:metrics.totalEmployers,  icon:"👔", color:"#fef9c3", textColor:"#92400e" },
-    { label:"Active Workers",  value:metrics.activeWorkers,   icon:"✅", color:"#dcfce7", textColor:"#166534" },
-    { label:"Pending Review",  value:metrics.pendingVerifications, icon:"⏳", color:"#ffedd5", textColor:"#9a3412" },
+  const navItems = [
+    { id: "overview", icon: <LayoutDashboard className="w-4 h-4" />, label: "Overview" },
+    { id: "verify",   icon: <ShieldCheck     className="w-4 h-4" />, label: "Verify Workers" },
+    { id: "workers",  icon: <HardHat         className="w-4 h-4" />, label: "All Workers" },
+    { id: "jobs",     icon: <Briefcase       className="w-4 h-4" />, label: "Job Stats" },
   ];
 
-  return (
-    <div style={{ minHeight:"100vh", background:"#f5f5f5", display:"flex" }}>
-      {/* Sidebar */}
-      <div className="wb-sidebar">
-        <div style={{ padding:"20px", marginBottom:"8px" }}>
-          <div className="wb-nav-logo">Work<span style={{color:"#2a9d8f"}}>Bridge</span></div>
-          <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"4px", fontWeight:600 }}>ADMIN PANEL</div>
-        </div>
-        {[
-          { label:"Overview",   icon:"📊", id:"overview" },
-          { label:"Verify Workers",icon:"🛡️",id:"verify" },
-          { label:"All Workers", icon:"👷", id:"workers" },
-          { label:"Job Stats",  icon:"💼", id:"jobs" },
-        ].map(item => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`wb-sidebar-link ${activeTab===item.id?"active":""}`}>
-            <span>{item.icon}</span><span>{item.label}</span>
-          </button>
-        ))}
-        <div style={{ flex:1 }} />
-        <button onClick={logout} className="wb-sidebar-link" style={{ color:"#ef4444", border:"none", cursor:"pointer" }}>
-          <span>🚪</span><span>Logout</span>
-        </button>
-      </div>
+  const metricCards = [
+    { label: "Total Workers",   value: metrics.totalWorkers,        icon: <HardHat   className="w-5 h-5 text-white" />, bg: "bg-gray-900" },
+    { label: "Total Employers", value: metrics.totalEmployers,       icon: <Users     className="w-5 h-5 text-white" />, bg: "bg-gray-900" },
+    { label: "Active Workers",  value: metrics.activeWorkers,        icon: <UserCheck className="w-5 h-5 text-white" />, bg: "bg-gray-900" },
+    { label: "Pending Review",  value: metrics.pendingVerifications, icon: <Clock     className="w-5 h-5 text-white" />, bg: "bg-gray-900" },
+  ];
 
-      {/* Main */}
-      <div style={{ flex:1, marginLeft:"232px", padding:"32px" }}>
-        {/* ── OVERVIEW ── */}
+  const todayStats = metrics.jobStats?.today || {};
+  const totalJobs  = Object.values(todayStats).reduce((a, b) => a + b, 0);
+  const chartData  = Object.entries(todayStats).map(([name, value]) => ({ name, value }));
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+
+      {/* ── Sidebar ── */}
+      <aside className="fixed top-0 left-0 h-full w-56 bg-gray-900 flex flex-col z-30">
+        <div className="px-5 pt-6 pb-4">
+          <div className="text-white text-xl font-extrabold">
+            Work<span className="text-teal">Bridge</span>
+          </div>
+          <div className="text-gray-500 text-xs font-bold mt-1 uppercase tracking-widest">Admin Panel</div>
+        </div>
+        <nav className="flex-1 px-2 space-y-1">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                activeTab === item.id
+                  ? "bg-white/10 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="px-2 pb-4">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-900/20 transition-all"
+          >
+            <LogOut className="w-4 h-4" /><span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main Content ── */}
+      <main className="flex-1 ml-56 p-8">
+
+        {/* ── Overview Tab ── */}
         {activeTab === "overview" && (
           <>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"28px" }}>
+            <div className="flex justify-between items-start mb-7">
               <div>
-                <h1 style={{ margin:0, fontSize:"24px", fontWeight:800 }}>Admin Dashboard</h1>
-                <p style={{ margin:"4px 0 0", color:"#6b7280", fontSize:"14px" }}>Platform overview and key metrics</p>
+                <h1 className="text-2xl font-extrabold text-gray-900">Admin Dashboard</h1>
+                <p className="text-sm text-gray-500 mt-1">Platform overview and key metrics</p>
               </div>
-              <button onClick={() => setCreateWorker(true)} className="wb-btn wb-btn-dark wb-btn-sm">+ Create Worker Account</button>
+              <button
+                onClick={() => setCreateWorker(true)}
+                className="bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Create Worker Account
+              </button>
             </div>
 
-            {/* Metric cards */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px", marginBottom:"28px" }}>
-              {METRIC_CARDS.map(c => (
-                <div key={c.label} style={{ background:"white", borderRadius:"14px", border:"1px solid #e5e5e5", padding:"20px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                    <div>
-                      <div style={{ fontSize:"13px", color:"#6b7280", marginBottom:"8px" }}>{c.label}</div>
-                      <div style={{ fontSize:"32px", fontWeight:900 }}>{c.value ?? 0}</div>
-                    </div>
-                    <div style={{ width:"44px", height:"44px", borderRadius:"12px", background:c.color, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"20px" }}>{c.icon}</div>
+            {/* Metric Cards */}
+            <div className="grid grid-cols-4 gap-4 mb-7">
+              {metricCards.map((c) => (
+                <div key={c.label} className="bg-white rounded-2xl border border-gray-100 p-5 flex justify-between items-start">
+                  <div>
+                    <div className="text-xs text-gray-500 font-medium mb-2">{c.label}</div>
+                    <div className="text-3xl font-black text-gray-900">{c.value ?? 0}</div>
+                  </div>
+                  <div className={`w-11 h-11 rounded-xl ${c.bg} flex items-center justify-center`}>
+                    {c.icon}
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Job stats */}
-            <div className="wb-card" style={{ marginBottom:"24px" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
-                <h2 style={{ margin:0, fontSize:"17px", fontWeight:700 }}>Job Statistics</h2>
-                <div style={{ display:"flex", gap:"6px" }}>
-                  {["today","week","month"].map(p => (
-                    <button key={p} onClick={() => setPeriodFilter(p)} style={{ padding:"6px 14px", borderRadius:"999px", border:"1.5px solid", fontSize:"12px", fontWeight:600, cursor:"pointer", background:periodFilter===p?"#1e1e1e":"white", color:periodFilter===p?"white":"#6b7280", borderColor:periodFilter===p?"#1e1e1e":"#e5e5e5" }}>
-                      {p.charAt(0).toUpperCase()+p.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:"12px" }}>
-                {Object.entries(metrics.jobStats?.today||{}).map(([k,v]) => (
-                  <div key={k} style={{ background:STATUS_COLOR[k]||"#f5f5f5", borderRadius:"10px", padding:"16px", textAlign:"center" }}>
-                    <div style={{ fontSize:"28px", fontWeight:800, marginBottom:"4px" }}>{v}</div>
-                    <div style={{ fontSize:"12px", fontWeight:600, color:"#374151" }}>{k}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Donut Chart */}
+            {Object.keys(todayStats).length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <h2 className="text-sm font-bold text-gray-700 mb-6">Today's Job Activity</h2>
+                <div className="flex items-center gap-10">
 
-            {/* Quick pending */}
-            {pending.length > 0 && (
-              <div className="wb-card">
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
-                  <h2 style={{ margin:0, fontSize:"17px", fontWeight:700 }}>Pending Verification ({pending.length})</h2>
-                  <button onClick={() => setActiveTab("verify")} style={{ background:"none", border:"none", color:"#2a9d8f", fontSize:"14px", fontWeight:600, cursor:"pointer" }}>View All →</button>
-                </div>
-                {pending.slice(0,3).map((w,i) => (
-                  <div key={w._id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:i<2?"1px solid #f0f0f0":"none" }}>
-                    <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
-                      <div className="wb-avatar wb-avatar-sm">{initials(w.userId?.fullName)}</div>
-                      <div>
-                        <div style={{ fontWeight:700, fontSize:"14px" }}>{w.userId?.fullName}</div>
-                        <div style={{ fontSize:"12px", color:"#6b7280" }}>Submitted {w.submittedAt} · {w.daysWaiting}d waiting</div>
-                      </div>
-                    </div>
-                    <button onClick={() => setReviewing(w)} className="wb-btn wb-btn-dark wb-btn-sm">Review</button>
+                  {/* Chart */}
+                  <div style={{ width: 200, height: 200, flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={95}
+                          paddingAngle={3}
+                          dataKey="value"
+                          strokeWidth={0}
+                        >
+                          {chartData.map(({ name }) => (
+                            <Cell key={name} fill={STATUS_COLORS[name] || "#e5e7eb"} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: "12px",
+                            border: "1px solid #f3f4f6",
+                            fontSize: "12px",
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                          }}
+                          formatter={(value, name) => [value, name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
+
+                  {/* Legend */}
+                  <div className="flex flex-col gap-3 flex-1">
+                    {Object.entries(todayStats).map(([status, count]) => (
+                      <div key={status} className="flex items-center gap-3">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: STATUS_COLORS[status] }}
+                        />
+                        <span className="text-sm text-gray-600 flex-1">{status}</span>
+                        <span className="text-sm font-bold text-gray-900">{count}</span>
+                        <span className="text-xs text-gray-400 w-10 text-right">
+                          {totalJobs ? Math.round((count / totalJobs) * 100) : 0}%
+                        </span>
+                      </div>
+                    ))}
+                    <div className="border-t border-gray-100 pt-2 mt-1 flex justify-between">
+                      <span className="text-xs text-gray-400 font-medium">Total</span>
+                      <span className="text-xs font-bold text-gray-700">{totalJobs}</span>
+                    </div>
+                  </div>
+
+                </div>
               </div>
             )}
           </>
         )}
 
-        {/* ── VERIFY WORKERS ── */}
+        {/* ── Verify Workers Tab ── */}
         {activeTab === "verify" && (
           <>
-            <h1 style={{ margin:"0 0 8px", fontSize:"24px", fontWeight:800 }}>Pending Verification Queue</h1>
-            <p style={{ margin:"0 0 24px", color:"#6b7280", fontSize:"14px" }}>Sorted by submission date, oldest first. Must review within 48 business hours.</p>
-
-            <div className="wb-card" style={{ padding:0, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 1fr 1fr", padding:"14px 20px", background:"#f9fafb", borderBottom:"1px solid #e5e5e5", fontSize:"12px", fontWeight:700, color:"#6b7280", textTransform:"uppercase", letterSpacing:"0.05em" }}>
-                <div>Worker Name</div><div>Services</div><div>City</div><div>Waiting</div><div>Action</div>
-              </div>
-
-              {pending.length === 0 && (
-                <div style={{ textAlign:"center", padding:"48px", color:"#9ca3af" }}>
-                  <div style={{ fontSize:"40px", marginBottom:"12px" }}>✅</div>
-                  <p>All profiles have been reviewed!</p>
-                </div>
-              )}
-
-              {pending.map((w, i) => (
-                <div key={w._id} style={{ display:"grid", gridTemplateColumns:"2fr 1.5fr 1fr 1fr 1fr", padding:"16px 20px", alignItems:"center", borderBottom:i<pending.length-1?"1px solid #f0f0f0":"none" }}>
-                  <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                    <div className="wb-avatar wb-avatar-sm">{initials(w.userId?.fullName)}</div>
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:"14px" }}>{w.userId?.fullName}</div>
-                      <div style={{ fontSize:"12px", color:"#9ca3af" }}>{w.phone}</div>
-                    </div>
-                  </div>
-                  <div style={{ display:"flex", gap:"4px", flexWrap:"wrap" }}>
-                    {(w.services||[]).map(s => <span key={s} className="wb-chip" style={{ fontSize:"11px", padding:"2px 8px" }}>{SERVICE_EMOJI[s]||"🔧"} {s}</span>)}
-                  </div>
-                  <div style={{ fontSize:"14px" }}>{w.preferredCity}</div>
-                  <div>
-                    <span style={{ padding:"4px 10px", borderRadius:"999px", fontSize:"12px", fontWeight:700, background: w.daysWaiting>1?"#fee2e2":w.daysWaiting===1?"#fef9c3":"#dcfce7", color: w.daysWaiting>1?"#991b1b":w.daysWaiting===1?"#854d0e":"#166534" }}>
-                      {w.daysWaiting}d waiting
-                    </span>
-                  </div>
-                  <div>
-                    <button onClick={() => setReviewing(w)} className="wb-btn wb-btn-dark wb-btn-sm">Review</button>
-                  </div>
-                </div>
-              ))}
+            <div className="mb-7">
+              <h1 className="text-2xl font-extrabold text-gray-900">Verify Workers</h1>
+              <p className="text-sm text-gray-500 mt-1">Review and approve pending worker profiles</p>
             </div>
+<div className="max-w-3xl mx-auto">
+    {pending.length === 0 ? (
+    <div className="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-100">
+      <CheckCircle className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+      <div className="font-semibold">No pending verifications</div>
+    </div>
+  ) : (
+    pending.map((worker, i) => (
+      <PendingWorkerRow
+        key={worker._id}
+        worker={worker}
+        onReview={(w) => setReviewing(w)}
+        isLast={i === pending.length - 1}
+      />
+    ))
+  )}
+</div>
           </>
         )}
 
-        {/* ── JOB STATS ── */}
+        {/* ── All Workers Tab ── */}
+{activeTab === "workers" && (
+  <>
+    <div className="mb-7">
+      <h1 className="text-2xl font-extrabold text-gray-900">All Workers</h1>
+      <p className="text-sm text-gray-500 mt-1">Browse all registered workers on the platform</p>
+    </div>
+
+    {allWorkers.length === 0 ? (
+      <div className="text-center py-16 text-gray-400">
+        <HardHat className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+        <div className="font-semibold">No workers found</div>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {allWorkers.map((worker) => {
+          const statusStyle =
+  worker.status === "verified"
+    ? { barColor: "#14b8a6", badgeColor: "#f0fdfa", badgeText: "#0f766e", badgeBorder: "#99f6e4", label: "✓ Verified" }
+    : worker.status === "rejected"
+    ? { barColor: "#14b8a6", badgeColor: "#f9fafb", badgeText: "#6b7280", badgeBorder: "#d1d5db", label: "✕ Rejected" }
+    : worker.status === "admin_created"
+    ? { barColor: "#14b8a6", badgeColor: "#f0fdfa", badgeText: "#0d9488", badgeBorder: "#99f6e4", label: "⚙ Admin" }
+    : { barColor: "#14b8a6", badgeColor: "#f0fdfa", badgeText: "#0d9488", badgeBorder: "#99f6e4", label: "◷ Pending" }
+
+          return (
+            <div
+              key={worker._id}
+              className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            >
+              {/* Coloured top bar */}
+{/* Coloured top bar */}
+<div className="h-1.5 w-full" style={{ backgroundColor: statusStyle.barColor }} />
+              <div className="p-5">
+                {/* Avatar + Name */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-full bg-gray-900 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                    {initials(worker.userId?.fullName)}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-gray-900 leading-tight">
+                      {worker.userId?.fullName}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">{worker.phone}</div>
+                  </div>
+                  {/* Status badge pushed to right */}
+                  <span className={`ml-auto text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyle.badge}`}>
+                    {statusStyle.label}
+                  </span>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-50 mb-3" />
+
+                {/* City */}
+                <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0L6.343 16.657a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="font-medium text-gray-600">{worker.preferredCity || "—"}</span>
+                </div>
+
+                {/* Services */}
+                <div className="flex flex-wrap gap-1.5">
+                  {(worker.services || []).length === 0 ? (
+                    <span className="text-xs text-gray-400">No services listed</span>
+                  ) : (
+                    worker.services.map((s) => (
+                      <span
+                        key={s}
+                        className="bg-gray-900 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                      >
+                        {s}
+                      </span>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </>
+)}
+
+        {/* ── Job Stats Tab ── */}
         {activeTab === "jobs" && (
           <>
-            <h1 style={{ margin:"0 0 24px", fontSize:"24px", fontWeight:800 }}>Job Statistics</h1>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px" }}>
-              {Object.entries(metrics.jobStats?.today||{}).map(([k,v]) => (
-                <div key={k} style={{ background:"white", borderRadius:"14px", border:"1px solid #e5e5e5", padding:"24px", textAlign:"center" }}>
-                  <div style={{ fontSize:"40px", fontWeight:900, color:"#1a1a1a", marginBottom:"8px" }}>{v}</div>
-                  <div style={{ fontSize:"14px", fontWeight:700, color:"#374151" }}>{k}</div>
-                  <div style={{ fontSize:"12px", color:"#9ca3af", marginTop:"4px" }}>Today</div>
+            <div className="mb-7">
+              <h1 className="text-2xl font-extrabold text-gray-900">Job Stats</h1>
+              <p className="text-sm text-gray-500 mt-1">Platform-wide job activity and trends</p>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-5 gap-4 mb-7">
+              {Object.entries(todayStats).map(([status, count]) => (
+                <div key={status} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-white">
+  {STATUS_ICON[status] || <ClipboardList className="w-4 h-4" />}
+</div>
+                  <div className="text-2xl font-black text-gray-900">{count}</div>
+                  <div className="text-xs font-semibold text-gray-500">{status}</div>
                 </div>
               ))}
             </div>
+
+{/* Bar Chart */}
+<div className="bg-white rounded-2xl border border-gray-100 p-6">
+  <div className="flex justify-between items-center mb-6">
+    <h2 className="text-sm font-bold text-gray-700">Today's Breakdown</h2>
+    <span className="text-xs text-gray-400 font-medium">Total: {totalJobs} jobs</span>
+  </div>
+  <ResponsiveContainer width="100%" height={280}>
+<BarChart data={chartData} barSize={58} barCategoryGap="35%" margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>   
+     <XAxis
+        dataKey="name"
+        tick={{ fontSize: 12, fill: "#6b7280", fontWeight: 500 }}
+        axisLine={false}
+        tickLine={false}
+      />
+      <YAxis
+        tick={{ fontSize: 12, fill: "#6b7280" }}
+        axisLine={false}
+        tickLine={false}
+        allowDecimals={false}
+      />
+      <Tooltip
+        contentStyle={{
+          borderRadius: "12px",
+          border: "1px solid #f3f4f6",
+          fontSize: "12px",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+        }}
+        cursor={{ fill: "#f9fafb" }}
+        formatter={(value, name) => [value, name]}
+      />
+      <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+        {chartData.map(({ name }) => (
+          <Cell key={name} fill={STATUS_COLORS[name] || "#e5e7eb"} />
+        ))}
+      </Bar>
+    </BarChart>
+  </ResponsiveContainer>
+</div>
           </>
         )}
-      </div>
 
-      {/* Review Modal */}
-      {reviewing && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100 }}>
-          <div style={{ background:"white", borderRadius:"20px", padding:"32px", width:"100%", maxWidth:"480px" }}>
-            <h2 style={{ margin:"0 0 20px", fontWeight:800 }}>Review Worker Profile</h2>
-            <div style={{ display:"flex", gap:"14px", alignItems:"center", background:"#f5f5f5", borderRadius:"12px", padding:"16px", marginBottom:"20px" }}>
-              <div className="wb-avatar wb-avatar-md">{initials(reviewing.userId?.fullName)}</div>
-              <div>
-                <div style={{ fontWeight:700 }}>{reviewing.userId?.fullName}</div>
-                <div style={{ fontSize:"13px", color:"#6b7280" }}>{reviewing.phone} · {reviewing.preferredCity}</div>
-                <div style={{ fontSize:"13px", color:"#6b7280", marginTop:"4px" }}>Submitted: {reviewing.submittedAt}</div>
-              </div>
-            </div>
-            <div style={{ marginBottom:"16px" }}>
-              <div style={{ fontSize:"13px", color:"#6b7280", marginBottom:"8px" }}>Services Applied For:</div>
-              <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
-                {(reviewing.services||[]).map(s => <span key={s} className="wb-chip">{SERVICE_EMOJI[s]||"🔧"} {s}</span>)}
-              </div>
-            </div>
+      </main>
 
-            {rejectId === reviewing._id ? (
-              <>
-                <div style={{ marginBottom:"16px" }}>
-                  <label className="wb-label">Rejection Reason <span style={{color:"red"}}>*</span> (min 20 characters)</label>
-                  <textarea className="wb-input" rows={4} value={rejectReason} onChange={e=>setRejectReason(e.target.value)}
-                    placeholder="Explain why this profile cannot be approved..." style={{ resize:"vertical" }} />
-                  <div style={{ fontSize:"12px", color: rejectReason.length<20?"#ef4444":"#9ca3af", marginTop:"4px" }}>{rejectReason.length}/20 minimum</div>
-                </div>
-                <div style={{ display:"flex", gap:"12px" }}>
-                  <button onClick={() => setRejectId(null)} className="wb-btn wb-btn-outline-dark" style={{ flex:1, justifyContent:"center" }}>Back</button>
-                  <button onClick={reject} disabled={rejectReason.length<20} className="wb-btn" style={{ flex:1, justifyContent:"center", background:"#dc2626", color:"white" }}>Confirm Rejection</button>
-                </div>
-              </>
-            ) : (
-              <div style={{ display:"flex", gap:"12px" }}>
-                <button onClick={() => { setReviewing(null); setRejectId(null); }} className="wb-btn wb-btn-outline-dark" style={{ justifyContent:"center" }}>Close</button>
-                <button onClick={() => { setRejectId(reviewing._id); }} className="wb-btn wb-btn-sm" style={{ flex:1, justifyContent:"center", background:"#fef2f2", color:"#dc2626", border:"1px solid #fecaca" }}>✕ Reject</button>
-                <button onClick={() => approve(reviewing._id)} className="wb-btn wb-btn-dark" style={{ flex:1, justifyContent:"center" }}>✓ Approve</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ── Modals ── */}
+      <CreateWorkerModal
+        open={createWorker}
+        onClose={() => setCreateWorker(false)}
+onCreated={(newWorker) => {
+  setCreateWorker(false);
+  if (newWorker) {
+    setAllWorkers((prev) => [...prev, newWorker]);
+    setMetrics((prev) => ({
+      ...prev,
+      totalWorkers: (prev.totalWorkers || 0) + 1,
+    }));
+  } else {
+    fetchAllWorkers();
+  }
+}}
+      />
 
-      {/* Create Worker Modal */}
-      {createWorker && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100 }}>
-          <div style={{ background:"white", borderRadius:"20px", padding:"32px", width:"100%", maxWidth:"480px" }}>
-            <h2 style={{ margin:"0 0 20px", fontWeight:800 }}>Create Worker Account</h2>
-            <p style={{ margin:"-12px 0 20px", color:"#6b7280", fontSize:"13px" }}>OTP verification is skipped for admin-created accounts.</p>
-            <div style={{ display:"flex", flexDirection:"column", gap:"14px" }}>
-              <div><label className="wb-label">Full Name <span style={{color:"red"}}>*</span></label><input className="wb-input" value={newWorkerForm.fullName} onChange={e=>setNewWorkerForm(f=>({...f,fullName:e.target.value}))} /></div>
-              <div><label className="wb-label">Phone (WhatsApp) <span style={{color:"red"}}>*</span></label><input className="wb-input" placeholder="03XX-XXXXXXX" value={newWorkerForm.phone} onChange={e=>setNewWorkerForm(f=>({...f,phone:e.target.value}))} /></div>
-              <div><label className="wb-label">CNIC Number <span style={{color:"red"}}>*</span></label><input className="wb-input" placeholder="00000-0000000-0" value={newWorkerForm.cnicNumber} onChange={e=>setNewWorkerForm(f=>({...f,cnicNumber:e.target.value}))} /></div>
-              <div><label className="wb-label">Preferred City</label>
-                <select className="wb-input" value={newWorkerForm.preferredCity} onChange={e=>setNewWorkerForm(f=>({...f,preferredCity:e.target.value}))}>
-                  {["Lahore","Karachi","Islamabad","Rawalpindi","Faisalabad","Multan"].map(c=><option key={c}>{c}</option>)}
-                </select></div>
-            </div>
-            <div style={{ display:"flex", gap:"12px", marginTop:"20px" }}>
-              <button onClick={() => setCreateWorker(false)} className="wb-btn wb-btn-outline-dark" style={{ flex:1, justifyContent:"center" }}>Cancel</button>
-              <button onClick={async () => {
-                try { await api.post("/admin/workers/create", newWorkerForm); alert("Worker account created!"); setCreateWorker(false); } catch(e) { alert(e.message || "Failed"); }
-              }} className="wb-btn wb-btn-dark" style={{ flex:1, justifyContent:"center" }}>Create Account</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WorkerReviewModal
+        open={!!reviewing}
+        worker={reviewing}
+        onClose={() => setReviewing(null)}
+        onApprove={approve}
+        onReject={reject}
+      />
     </div>
   );
 }
