@@ -1,9 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
 
+/* Optional: Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
 :root {
   --teal: #5ecfb8;
   --teal-dark: #2a9d8f;
@@ -21,7 +31,7 @@
 * { box-sizing: border-box; }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-main);
   background: var(--gray-bg);
   margin: 0;

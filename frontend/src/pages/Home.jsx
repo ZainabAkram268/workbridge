@@ -1,229 +1,343 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import Navbar from "../components/layout/Navbar";
+import {
+  Shield, Mic, Zap, Star, ChevronDown, ChevronRight,
+  ArrowRight, CheckCircle2, Users, Briefcase, TrendingUp,
+  MapPin, Phone, Mail,
+  Home as HomeIcon, Car, Leaf, Baby, ChefHat, Plug, Wrench, Eye,
+  Award, Clock, HeartHandshake, BarChart3,
+} from "lucide-react";
 
 const SERVICES = [
-  { emoji:"🧹", label:"Domestic Helpers", sub:"Cleaning & housekeeping" },
-  { emoji:"🚗", label:"Drivers",          sub:"Personal & professional" },
-  { emoji:"🌱", label:"Gardeners",        sub:"Lawn care & landscaping" },
-  { emoji:"👶", label:"Babysitters",      sub:"Trusted childcare" },
-  { emoji:"👨‍🍳",label:"Cooks",            sub:"Professional cooking" },
-  { emoji:"⚡", label:"Electricians",     sub:"Electrical repairs" },
-  { emoji:"🔧", label:"Plumbers",         sub:"Plumbing services" },
-  { emoji:"🛡️", label:"Security Guards",  sub:"Professional security" },
+  { Icon: HomeIcon,    label: "Domestic Helpers", sub: "Cleaning & housekeeping",  color: "bg-violet-50 text-violet-600" },
+  { Icon: Car,         label: "Drivers",           sub: "Personal & professional",  color: "bg-sky-50 text-sky-600" },
+  { Icon: Leaf,        label: "Gardeners",         sub: "Lawn care & landscaping",  color: "bg-emerald-50 text-emerald-600" },
+  { Icon: Baby,        label: "Babysitters",        sub: "Trusted childcare",        color: "bg-pink-50 text-pink-600" },
+  { Icon: ChefHat,     label: "Cooks",              sub: "Professional cooking",     color: "bg-amber-50 text-amber-600" },
+  { Icon: Plug,        label: "Electricians",       sub: "Electrical repairs",       color: "bg-yellow-50 text-yellow-600" },
+  { Icon: Wrench,      label: "Plumbers",           sub: "Plumbing services",        color: "bg-cyan-50 text-cyan-600" },
+  { Icon: Eye,         label: "Security Guards",    sub: "Professional security",     color: "bg-slate-50 text-slate-600" },
 ];
 
-const FAQS = [
-  { q:"Is WorkBridge really free for workers?", a:"Yes! Registration and profile creation is completely free for all workers. We only connect you with employers." },
-  { q:"How does CNIC verification work?", a:"Upload your CNIC front image during registration. Our admin team manually reviews and verifies each profile within 48 hours." },
-  { q:"How do I use Urdu voice navigation?", a:"Click the speaker icon on any page to hear Urdu audio instructions for that screen." },
-  { q:"What happens if there's a dispute?", a:"Our admin team mediates disputes between workers and employers. Contact support through the help center." },
-  { q:"How are workers rated?", a:"Employers can rate workers on a 1-5 star scale with optional written feedback after job completion." },
-  { q:"What payment methods are accepted?", a:"Currently WorkBridge facilitates the agreement; payments are made directly between employers and workers." },
+const FEATURES = [
+  { Icon: Shield,         title: "CNIC Verified",      desc: "Every worker is manually verified by our admin team within 48 hours.",    color: "text-violet-500", bg: "bg-violet-50" },
+  { Icon: Mic,            title: "Urdu Voice Support",  desc: "Full Urdu audio navigation so every Pakistani can use WorkBridge.",       color: "text-emerald-500", bg: "bg-emerald-50" },
+  { Icon: Zap,            title: "Real-Time Matching",  desc: "AI-powered matching connects the right worker to the right employer.",    color: "text-amber-500", bg: "bg-amber-50" },
+  { Icon: HeartHandshake, title: "Free for Workers",    desc: "Registration, profiles, and job applications are 100% free for workers.", color: "text-sky-500", bg: "bg-sky-50" },
+  { Icon: BarChart3,      title: "Transparent Ratings", desc: "5-star reviews and written feedback build community trust over time.",    color: "text-rose-500", bg: "bg-rose-50" },
+  { Icon: Award,          title: "Dispute Resolution",  desc: "Our dedicated admin team mediates any employer-worker disputes.",         color: "text-teal-500", bg: "bg-teal-50" },
+];
+
+const STATS = [
+  { value: "2,840+", label: "Active Workers",    Icon: Users },
+  { value: "183",    label: "Jobs Today",        Icon: Briefcase },
+  { value: "97%",    label: "Match Rate",        Icon: TrendingUp },
+  { value: "4.9",    label: "Average Rating",    Icon: Star },
 ];
 
 const TESTIMONIALS = [
-  { initials:"AM", name:"Ali Mahmood",  role:"Driver, Lahore",     stars:5, text:'"WorkBridge gave me steady work and respect. The Urdu voice feature makes it so easy to use!"' },
-  { initials:"SB", name:"Sara Baig",    role:"Employer, Karachi",  stars:5, text:'"Found a verified driver in 10 minutes. The rating system gives me real confidence in the workers."' },
-  { initials:"FA", name:"Fatima Asif",  role:"Employer, Islamabad",stars:5, text:'"The CNIC verification makes me feel safe hiring domestic helpers for my home."' },
+  { initials: "AM", name: "Ali Mahmood",   role: "Driver · Lahore",    stars: 5, text: "WorkBridge gave me steady work and real respect. The Urdu voice feature makes it incredibly easy to navigate." },
+  { initials: "SB", name: "Sara Baig",     role: "Employer · Karachi",  stars: 5, text: "Found a verified, background-checked driver in under 10 minutes. The rating system gives me full confidence." },
+  { initials: "FA", name: "Fatima Asif",   role: "Employer · Islamabad", stars: 5, text: "CNIC verification makes me feel completely safe hiring domestic helpers. I won't use any other platform." },
 ];
+
+const FAQS = [
+  { q: "Is WorkBridge really free for workers?",  a: "Yes — registration, profile creation, and job applications are completely free for all workers. We only connect you with employers." },
+  { q: "How does CNIC verification work?",         a: "Upload your CNIC front image during registration. Our admin team manually reviews and verifies each profile within 48 hours." },
+  { q: "How do I use Urdu voice navigation?",      a: "Tap the speaker icon on any page to hear Urdu audio instructions for that screen — no reading required." },
+  { q: "What happens if there's a dispute?",       a: "Our admin team mediates all disputes between workers and employers. Reach us anytime through the Help Center." },
+  { q: "How are workers rated?",                   a: "Employers rate workers 1–5 stars with optional written feedback after each completed job." },
+  { q: "What payment methods are accepted?",       a: "WorkBridge facilitates agreements; payments are made directly between employers and workers in any mutually agreed method." },
+];
+
+const EMP_STEPS = [
+  { n: 1, Icon: Users,      label: "Register",   desc: "Sign up in 2 minutes with OTP verification" },
+  { n: 2, Icon: Zap,        label: "Search",     desc: "Filter workers by service, location & date" },
+  { n: 3, Icon: Briefcase,  label: "Book",       desc: "Send a request and get instant confirmation" },
+  { n: 4, Icon: Star,       label: "Review",     desc: "Rate workers and build community trust" },
+];
+const WRK_STEPS = [
+  { n: 1, Icon: Users,      label: "Create Profile",    desc: "Register with your CNIC and service details" },
+  { n: 2, Icon: Shield,     label: "Get Verified",      desc: "Admin reviews and approves your profile" },
+  { n: 3, Icon: Briefcase,  label: "Receive Requests",  desc: "Accept jobs that match your schedule" },
+  { n: 4, Icon: TrendingUp, label: "Earn & Grow",       desc: "Build ratings and expand your opportunities" },
+];
+
+function useCountUp(target, duration = 1600, start = false) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!start) return;
+    const num = parseFloat(target.replace(/[^0-9.]/g, "")) || 0;
+    const steps = 40;
+    const inc = num / steps;
+    let c = 0, step = 0;
+    const t = setInterval(() => {
+      step++;
+      c = Math.min(c + inc, num);
+      setCount(c);
+      if (step >= steps) clearInterval(t);
+    }, duration / steps);
+    return () => clearInterval(t);
+  }, [start, target, duration]);
+  return count;
+}
+
+function StatCard({ value, label, Icon, animate }) {
+  const num = parseFloat(value.replace(/[^0-9.]/g, "")) || 0;
+  const suffix = value.replace(/[0-9.,]/g, "");
+  const count = useCountUp(value, 1400, animate);
+  const display = animate
+    ? (Number.isInteger(num) ? Math.round(count).toLocaleString() : count.toFixed(1)) + suffix
+    : value;
+
+  return (
+    <div className="flex flex-col items-center gap-3 p-8">
+      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+        <Icon className="w-5 h-5 text-white/80" />
+      </div>
+      <div className="text-4xl font-black text-white tracking-tight">{display}</div>
+      <div className="text-sm text-white/50 font-medium tracking-wide uppercase">{label}</div>
+    </div>
+  );
+}
 
 export default function Home() {
   const navigate = useNavigate();
-  const [howTab, setHowTab]   = useState("employers");
+  const [howTab, setHowTab] = useState("employers");
   const [openFaq, setOpenFaq] = useState(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const statsRef = useRef(null);
 
-  const EMP_STEPS = [
-    { n:1, label:"Register",  desc:"Sign up in 2 minutes with OTP verification" },
-    { n:2, label:"Search",    desc:"Find workers by service, location, and date" },
-    { n:3, label:"Book",      desc:"Send request & get instant confirmation" },
-    { n:4, label:"Review",    desc:"Rate workers and build community trust" },
-  ];
-  const WRK_STEPS = [
-    { n:1, label:"Create Profile",   desc:"Register with CNIC and service details" },
-    { n:2, label:"Get Verified",     desc:"Admin reviews and approves your profile" },
-    { n:3, label:"Receive Requests", desc:"Accept jobs that match your schedule" },
-    { n:4, label:"Earn & Grow",      desc:"Build ratings and expand opportunities" },
-  ];
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) setStatsVisible(true); },
+      { threshold: 0.3 }
+    );
+    if (statsRef.current) obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
 
   return (
-    <div style={{ background:"white", fontFamily:"Inter, sans-serif" }}>
-      {/* ── NAVBAR ── */}
-      <nav style={{ position:"sticky", top:0, zIndex:50, background:"white", borderBottom:"1px solid #f0f0f0", padding:"0 40px", height:"64px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <div style={{ display:"flex", gap:"8px", alignItems:"center" }}>
-          <span style={{ fontSize:"20px" }}>🌉</span>
-          <span style={{ fontWeight:800, fontSize:"18px" }}>WorkBridge</span>
-        </div>
-        <div style={{ display:"flex", gap:"28px", alignItems:"center" }}>
-          {["Find a Worker","How It Works","Services"].map(l => (
-            <a key={l} href={`#${l.toLowerCase().replace(/ /g,"-")}`} style={{ fontSize:"14px", fontWeight:500, color:"#374151", textDecoration:"none" }}>{l}</a>
-          ))}
-          <Link to="/login" style={{ fontSize:"14px", fontWeight:600, color:"#374151", textDecoration:"none" }}>Login</Link>
-          <Link to="/register/employer" className="wb-btn wb-btn-dark" style={{ textDecoration:"none", fontSize:"14px", minHeight:"40px", padding:"8px 20px" }}>Register</Link>
-        </div>
-      </nav>
+    <div className="bg-white font-sans antialiased text-gray-900">
+      <Navbar />
 
-      {/* ── HERO ── */}
-      <section style={{ padding:"72px 40px 64px", maxWidth:"1200px", margin:"0 auto", display:"grid", gridTemplateColumns:"1fr 1fr", gap:"48px", alignItems:"center" }}>
-        <div>
-          <h1 style={{ margin:"0 0 20px", fontSize:"48px", fontWeight:900, lineHeight:1.1, color:"#1a1a1a" }}>
-            Pakistan's Trusted<br />Platform for<br />
-            <span style={{ color:"#2a9d8f" }}>Verified Workers</span> &amp;<br />
-            <span style={{ color:"#2a9d8f" }}>Reliable Jobs</span>
-          </h1>
-          <p style={{ margin:"0 0 28px", fontSize:"16px", color:"#6b7280", lineHeight:1.7 }}>
-            Connecting skilled workers with employers through CNIC-verified profiles, Urdu voice guidance, and real-time matching.
-          </p>
-          <div style={{ display:"flex", gap:"14px", marginBottom:"28px" }}>
-            <button onClick={() => navigate("/register/employer")} className="wb-btn wb-btn-dark" style={{ fontSize:"15px" }}>
-              I Need Workers
-            </button>
-            <button onClick={() => navigate("/register/worker")} className="wb-btn wb-btn-outline-dark" style={{ fontSize:"15px" }}>
-              I'm Looking for Work
-            </button>
-          </div>
-          <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
-            {["✓ CNIC Verified","🗣️ Urdu Accessible","🆓 Free for Workers","⚡ Real-Time Matching"].map(b => (
-              <span key={b} style={{ background:"#f5f5f5", color:"#374151", padding:"6px 14px", borderRadius:"999px", fontSize:"13px", fontWeight:500 }}>{b}</span>
-            ))}
-          </div>
+      {/* HERO */}
+      <section className="relative pt-5 pb-0 overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-teal-50 blur-3xl opacity-60" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-violet-50 blur-3xl opacity-40" />
+          <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px] opacity-30" />
         </div>
 
-        {/* Stats card */}
-        <div style={{ background:"white", borderRadius:"20px", border:"1px solid #e5e5e5", padding:"28px", boxShadow:"0 4px 24px rgba(0,0,0,0.06)" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"20px" }}>
-            <span style={{ fontWeight:700, fontSize:"15px" }}>Today's Overview</span>
-            <div style={{ display:"flex", gap:"4px" }}>
-              <div style={{ width:"10px", height:"10px", borderRadius:"50%", background:"#e5e5e5" }} />
-              <div style={{ width:"10px", height:"10px", borderRadius:"50%", background:"#2a9d8f" }} />
+        <div className="max-w-7xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-16 items-center w-full">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-4 py-2 rounded-full mb-6 uppercase tracking-wider">
+              <Shield className="w-3.5 h-3.5" />
+              Pakistan's #1 Verified Workers Platform
+            </div>
+
+            <h1 className="text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight mb-6">
+              Trusted Workers.<br />
+              <span className="bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-transparent">
+                Verified Profiles.
+              </span><br />
+              Real Opportunities.
+            </h1>
+
+            <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-lg">
+              Connecting skilled workers with employers across Pakistan through CNIC-verified profiles, Urdu voice guidance, and real-time job matching.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-10">
+              <button onClick={() => navigate("/register/employer")}
+                className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-700 text-white font-semibold px-7 py-3.5 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gray-900/20">
+                I Need Workers <ArrowRight className="w-4 h-4" />
+              </button>
+              <button onClick={() => navigate("/register/worker")}
+                className="flex items-center justify-center gap-2 border-2 border-gray-200 hover:border-teal-400 hover:bg-teal-50 text-gray-800 font-semibold px-7 py-3.5 rounded-2xl transition-all hover:scale-[1.02]">
+                I'm Looking for Work
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {[
+                { Icon: Shield, text: "CNIC Verified" },
+                { Icon: Mic,    text: "Urdu Support" },
+                { Icon: Zap,    text: "Free for Workers" },
+                { Icon: Clock,  text: "48hr Verification" },
+              ].map(({ Icon: I, text }) => (
+                <div key={text} className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-medium px-3.5 py-2 rounded-xl shadow-sm">
+                  <I className="w-3.5 h-3.5 text-teal-500" /> {text}
+                </div>
+              ))}
             </div>
           </div>
-          {[
-            { label:"ACTIVE WORKERS",    value:"2,840", emoji:"👷", bg:"#fef9c3" },
-            { label:"JOBS POSTED TODAY", value:"183",   emoji:"💼", bg:"#dbeafe" },
-            { label:"MATCHES MADE",      value:"97%",   emoji:"✓",  bg:"#d6f5ef" },
-          ].map(s => (
-            <div key={s.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"16px", borderRadius:"12px", background:"#f9fafb", marginBottom:"12px" }}>
-              <div>
-                <div style={{ fontSize:"11px", fontWeight:600, color:"#9ca3af", letterSpacing:"0.06em" }}>{s.label}</div>
-                <div style={{ fontSize:"28px", fontWeight:900, marginTop:"2px" }}>{s.value}</div>
+
+          <div className="relative">
+            <div className="absolute -inset-4 bg-gradient-to-br from-teal-100 to-violet-100 rounded-3xl blur-2xl opacity-40" />
+            <div className="relative bg-white rounded-3xl border border-gray-200 shadow-2xl shadow-gray-200/80 p-6 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-0.5">Live Dashboard</p>
+                  <h3 className="text-base font-bold">Today's Overview</h3>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs text-gray-500 font-medium">Live</span>
+                </div>
               </div>
-              <div style={{ width:"44px", height:"44px", borderRadius:"12px", background:s.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"22px" }}>{s.emoji}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
-      {/* ── WHY CHOOSE US ── */}
-      <section style={{ padding:"64px 40px", background:"#f9fafb" }}>
-        <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"40px" }}>
-            <div>
-              <div className="wb-tag" style={{ marginBottom:"12px" }}>WHY CHOOSE US</div>
-              <h2 style={{ margin:0, fontSize:"30px", fontWeight:800 }}>Why Choose WorkBridge Pakistan?</h2>
-            </div>
-            <p style={{ maxWidth:"320px", color:"#6b7280", fontSize:"14px", lineHeight:1.7, margin:0 }}>Trusted by thousands of workers and employers across Pakistan.</p>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"20px" }}>
-            {[
-              { emoji:"👷", title:"For Workers", items:["Free Registration & Profile Creation","CNIC-Based Verification","Control Your Schedule","Direct Employer Connection","Fair Payment & Transparent Ratings"] },
-              { emoji:"🏠", title:"For Employers", items:["Access Verified Workers","Search by Service & Location","Transparent Reviews & Ratings","Quick Booking & Real-Time Updates","Trusted Background Checks"] },
-              { emoji:"🛡️", title:"Key Features", items:["Urdu Voice Navigation","Icon-Based Interface","Admin Verification","Dispute Resolution","Notification Alerts"] },
-            ].map(card => (
-              <div key={card.title} style={{ background:"white", borderRadius:"16px", padding:"28px", border:"1px solid #e5e5e5" }}>
-                <div style={{ fontSize:"32px", marginBottom:"14px" }}>{card.emoji}</div>
-                <h3 style={{ margin:"0 0 16px", fontSize:"17px", fontWeight:700 }}>{card.title}</h3>
-                {card.items.map(item => (
-                  <div key={item} style={{ display:"flex", gap:"8px", alignItems:"center", marginBottom:"10px", fontSize:"14px", color:"#374151" }}>
-                    <span style={{ color:"#2a9d8f", fontWeight:700 }}>✓</span>{item}
+              {[
+                { label: "Active Workers",    value: "2,840",   sub: "+124 this week",  Icon: Users,      color: "bg-violet-50 text-violet-600",  bar: "bg-violet-400", pct: "78%" },
+                { label: "Jobs Posted Today",  value: "183",     sub: "+22 vs yesterday", Icon: Briefcase,  color: "bg-sky-50 text-sky-600",         bar: "bg-sky-400",    pct: "54%" },
+                { label: "Successful Matches", value: "97%",     sub: "Match rate",       Icon: CheckCircle2, color: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-400", pct: "97%" },
+              ].map(s => (
+                <div key={s.label} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 hover:bg-gray-100/80 transition-colors">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${s.color}`}>
+                    <s.Icon className="w-5 h-5" />
                   </div>
-                ))}
-              </div>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400 font-medium mb-0.5">{s.label}</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-black tracking-tight">{s.value}</span>
+                      <span className="text-xs text-emerald-600 font-semibold">{s.sub}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 rounded-full bg-gray-200 overflow-hidden">
+                      <div className={`h-full rounded-full ${s.bar}`} style={{ width: s.pct, transition: "width 1s ease" }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section style={{ padding:"64px 40px" }} id="how-it-works">
-        <div style={{ maxWidth:"900px", margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"32px" }}>
-            <div>
-              <div className="wb-tag" style={{ marginBottom:"12px" }}>HOW IT WORKS</div>
-              <h2 style={{ margin:0, fontSize:"30px", fontWeight:800 }}>Getting Started is Simple</h2>
-            </div>
-          </div>
-          <div style={{ display:"flex", gap:"8px", marginBottom:"36px" }}>
-            {[{id:"employers",l:"For Employers"},{id:"workers",l:"For Workers"}].map(t => (
-              <button key={t.id} onClick={() => setHowTab(t.id)} style={{ padding:"10px 24px", borderRadius:"999px", border:"1.5px solid", fontWeight:600, fontSize:"14px", cursor:"pointer", background:howTab===t.id?"#1e1e1e":"white", color:howTab===t.id?"white":"#6b7280", borderColor:howTab===t.id?"#1e1e1e":"#e5e5e5" }}>{t.l}</button>
-            ))}
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"20px" }}>
-            {(howTab==="employers" ? EMP_STEPS : WRK_STEPS).map(s => (
-              <div key={s.n} style={{ textAlign:"center" }}>
-                <div style={{ width:"52px", height:"52px", borderRadius:"50%", background:"#1e1e1e", color:"white", fontWeight:800, fontSize:"18px", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>{s.n}</div>
-                <h4 style={{ margin:"0 0 8px", fontWeight:700, fontSize:"15px" }}>{s.label}</h4>
-                <p style={{ margin:0, fontSize:"13px", color:"#6b7280", lineHeight:1.6 }}>{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SERVICES ── */}
-      <section style={{ padding:"64px 40px", background:"#f9fafb" }} id="services">
-        <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"32px" }}>
-            <div>
-              <div className="wb-tag" style={{ marginBottom:"12px" }}>SERVICES</div>
-              <h2 style={{ margin:0, fontSize:"30px", fontWeight:800 }}>Services Available</h2>
-            </div>
-            <Link to="/employer/workers" style={{ fontWeight:600, fontSize:"14px", color:"#2a9d8f", textDecoration:"none" }}>Find a Worker →</Link>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"16px" }}>
-            {SERVICES.map(s => (
-              <div key={s.label} onClick={() => navigate("/employer/workers")} style={{ background:"white", borderRadius:"14px", border:"1px solid #e5e5e5", padding:"28px 20px", textAlign:"center", cursor:"pointer", transition:"all 0.15s" }}
-                onMouseEnter={e=>e.currentTarget.style.borderColor="#2a9d8f"}
-                onMouseLeave={e=>e.currentTarget.style.borderColor="#e5e5e5"}>
-                <div style={{ fontSize:"36px", marginBottom:"12px" }}>{s.emoji}</div>
-                <div style={{ fontWeight:700, fontSize:"14px", marginBottom:"4px" }}>{s.label}</div>
-                <div style={{ fontSize:"12px", color:"#9ca3af" }}>{s.sub}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── STATS BAND ── */}
-      <section style={{ background:"#1e1e1e", padding:"48px 40px" }}>
-        <div style={{ maxWidth:"1000px", margin:"0 auto", display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"20px", textAlign:"center" }}>
-          {[["12K+","Happy Companies"],["600K+","Active Users"],["99.9%","Uptime SLA"],["4.9★","User Rating"]].map(([v,l]) => (
-            <div key={l}>
-              <div style={{ fontSize:"40px", fontWeight:900, color:"#5ecfb8", marginBottom:"6px" }}>{v}</div>
-              <div style={{ fontSize:"14px", color:"#9ca3af" }}>{l}</div>
-            </div>
+      {/* STATS BAND */}
+      <section ref={statsRef} className="bg-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff05_1px,transparent_1px)] [background-size:20px_20px]" />
+        <div className="max-w-5xl mx-auto px-6 py-4 grid grid-cols-2 lg:grid-cols-4 divide-x divide-white/10">
+          {STATS.map((s) => (
+            <StatCard key={s.label} {...s} animate={statsVisible} />
           ))}
         </div>
       </section>
 
-      {/* ── REVIEWS ── */}
-      <section style={{ padding:"64px 40px" }}>
-        <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"32px" }}>
-            <div>
-              <div className="wb-tag" style={{ marginBottom:"12px" }}>REVIEWS</div>
-              <h2 style={{ margin:0, fontSize:"30px", fontWeight:800 }}>What Our Community Says</h2>
+      {/* FEATURES */}
+      <section className="py-24 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">Why WorkBridge</p>
+            <h2 className="text-4xl font-black tracking-tight mb-4">Built for Pakistan's Workforce</h2>
+            <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">Every feature is designed with the unique needs of Pakistani workers and employers in mind.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FEATURES.map(({ Icon: I, title, desc, color, bg }) => (
+              <div key={title} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg hover:shadow-gray-100 hover:-translate-y-1 transition-all duration-200 group">
+                <div className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center mb-4`}>
+                  <I className={`w-5 h-5 ${color}`} />
+                </div>
+                <h3 className="font-bold text-base mb-2 group-hover:text-teal-600 transition-colors">{title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" className="py-24">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">How It Works</p>
+            <h2 className="text-4xl font-black tracking-tight mb-4">Getting Started is Simple</h2>
+          </div>
+
+          <div className="flex justify-center mb-12">
+            <div className="inline-flex bg-gray-100 rounded-2xl p-1">
+              {[{id:"employers",l:"For Employers"},{id:"workers",l:"For Workers"}].map(t => (
+                <button key={t.id} onClick={() => setHowTab(t.id)}
+                  className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${howTab === t.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                  {t.l}
+                </button>
+              ))}
             </div>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"20px" }}>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+            <div className="hidden lg:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+            {(howTab === "employers" ? EMP_STEPS : WRK_STEPS).map((s) => (
+              <div key={s.n} className="flex flex-col items-center text-center relative">
+                <div className="w-20 h-20 rounded-2xl bg-gray-900 flex items-center justify-center mb-5 shadow-xl shadow-gray-900/20 relative z-10 hover:scale-105 transition-transform">
+                  <s.Icon className="w-8 h-8 text-white" />
+                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-teal-500 text-white text-xs font-black flex items-center justify-center shadow">
+                    {s.n}
+                  </div>
+                </div>
+                <h4 className="font-bold text-base mb-2">{s.label}</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SERVICES */}
+      <section id="services" className="py-24 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
+            <div>
+              <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">Services</p>
+              <h2 className="text-4xl font-black tracking-tight">What We Offer</h2>
+            </div>
+            <Link to="/employer/workers" className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors">
+              Browse all workers <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {SERVICES.map(({ Icon: I, label, sub, color }) => (
+              <button key={label} onClick={() => navigate("/employer/workers")}
+                className="group bg-white rounded-2xl border border-gray-100 p-5 text-left hover:shadow-md hover:shadow-gray-100 hover:-translate-y-1 hover:border-teal-200 transition-all duration-200">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${color}`}>
+                  <I className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-sm mb-1 group-hover:text-teal-600 transition-colors">{label}</h3>
+                <p className="text-xs text-gray-400">{sub}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">Reviews</p>
+            <h2 className="text-4xl font-black tracking-tight mb-4">What Our Community Says</h2>
+            <div className="flex items-center justify-center gap-1.5">
+              {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />)}
+              <span className="ml-2 text-sm font-semibold text-gray-600">4.9 out of 5 from 12,000+ users</span>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map(t => (
-              <div key={t.name} style={{ background:"white", borderRadius:"16px", border:"1px solid #e5e5e5", padding:"24px" }}>
-                <div style={{ color:"#f59e0b", fontSize:"16px", marginBottom:"12px" }}>{"★".repeat(t.stars)}</div>
-                <p style={{ margin:"0 0 20px", fontSize:"14px", color:"#374151", lineHeight:1.7, fontStyle:"italic" }}>{t.text}</p>
-                <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                  <div className="wb-avatar wb-avatar-sm">{t.initials}</div>
+              <div key={t.name} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg hover:shadow-gray-100 transition-all hover:-translate-y-1 flex flex-col">
+                <div className="flex gap-0.5 mb-4">
+                  {[...Array(t.stars)].map((_, i) => <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />)}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed flex-1 mb-6">"{t.text}"</p>
+                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white text-xs font-black flex-shrink-0">
+                    {t.initials}
+                  </div>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:"14px" }}>{t.name}</div>
-                    <div style={{ fontSize:"12px", color:"#6b7280" }}>{t.role}</div>
+                    <p className="font-bold text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.role}</p>
                   </div>
                 </div>
               </div>
@@ -232,61 +346,90 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section style={{ padding:"64px 40px", background:"#f9fafb" }}>
-        <div style={{ maxWidth:"720px", margin:"0 auto" }}>
-          <div style={{ textAlign:"center", marginBottom:"40px" }}>
-            <div className="wb-tag" style={{ marginBottom:"12px" }}>FAQ</div>
-            <h2 style={{ margin:0, fontSize:"30px", fontWeight:800 }}>Frequently Asked Questions</h2>
+      {/* FAQ */}
+      <section id="faqs" className="py-24 bg-gray-50/50 scroll-mt-20">
+        <div className="max-w-2xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-3">FAQ</p>
+            <h2 className="text-4xl font-black tracking-tight text-slate-800">Common Questions</h2>
           </div>
-          {FAQS.map((faq, i) => (
-            <div key={i} style={{ borderBottom:"1px solid #e5e5e5" }}>
-              <button onClick={() => setOpenFaq(openFaq===i?null:i)} style={{ width:"100%", display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 0", background:"none", border:"none", cursor:"pointer", textAlign:"left" }}>
-                <span style={{ fontWeight:600, fontSize:"15px", color:"#1a1a1a" }}>{faq.q}</span>
-                <span style={{ color:"#6b7280", fontSize:"20px", flexShrink:0, marginLeft:"16px" }}>{openFaq===i?"−":"+"}</span>
-              </button>
-              {openFaq===i && <p style={{ margin:"0 0 16px", fontSize:"14px", color:"#6b7280", lineHeight:1.7 }}>{faq.a}</p>}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section style={{ background:"#1e1e1e", padding:"72px 40px", textAlign:"center" }}>
-        <h2 style={{ margin:"0 0 14px", fontSize:"36px", fontWeight:900, color:"white" }}>Ready to Get Started?</h2>
-        <p style={{ margin:"0 0 32px", color:"#9ca3af", fontSize:"16px" }}>Join thousands of workers and employers building trust together</p>
-        <div style={{ display:"flex", gap:"16px", justifyContent:"center", flexWrap:"wrap" }}>
-          <Link to="/register/worker" className="wb-btn wb-btn-teal" style={{ textDecoration:"none", fontSize:"15px" }}>Sign Up as Worker</Link>
-          <Link to="/register/employer" className="wb-btn" style={{ textDecoration:"none", fontSize:"15px", background:"white", color:"#1e1e1e", border:"none" }}>Sign Up as Employer</Link>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{ background:"#111", padding:"48px 40px 28px" }}>
-        <div style={{ maxWidth:"1100px", margin:"0 auto" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr 1fr 1.5fr", gap:"40px", marginBottom:"40px" }}>
-            <div>
-              <div style={{ fontWeight:800, fontSize:"18px", color:"white", marginBottom:"10px" }}>WorkBridge</div>
-              <p style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.7, margin:"0 0 16px" }}>Bridging Trust, Empowering Futures.<br />Pakistan's trusted platform for informal workers.</p>
-            </div>
-            {[
-              { title:"Quick Links", items:["About Us","How It Works","Services","Pricing","Blog"] },
-              { title:"Support",     items:["Help Center","FAQs","Contact Support","Report Issue","Terms & Conditions"] },
-            ].map(col => (
-              <div key={col.title}>
-                <div style={{ fontWeight:700, fontSize:"13px", color:"white", marginBottom:"16px", textTransform:"uppercase", letterSpacing:"0.06em" }}>{col.title}</div>
-                {col.items.map(item => <div key={item} style={{ color:"#6b7280", fontSize:"13px", marginBottom:"10px", cursor:"pointer" }}>{item}</div>)}
+          <div className="space-y-3">
+            {FAQS.map((faq, i) => (
+              <div key={i} className={`bg-white rounded-2xl border transition-all duration-200 ${openFaq === i ? "border-teal-200 shadow-sm" : "border-gray-100"}`}>
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  className="w-full flex items-center justify-between gap-4 p-5 text-left">
+                  <span className={`font-semibold text-sm transition-colors ${openFaq === i ? "text-teal-600" : "text-gray-800"}`}>{faq.q}</span>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${openFaq === i ? "bg-teal-50 text-teal-600" : "bg-gray-100 text-gray-400"}`}>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${openFaq === i ? "rotate-180" : ""}`} />
+                  </div>
+                </button>
+                {openFaq === i && (
+                  <p className="px-5 pb-5 text-sm text-gray-500 leading-relaxed border-t border-gray-100 pt-4">{faq.a}</p>
+                )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="relative py-24 overflow-hidden">
+        <div className="absolute inset-0 bg-gray-900 -z-10" />
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <p className="text-xs font-bold text-teal-400 uppercase tracking-widest mb-4">Get Started Today</p>
+          <h2 className="text-4xl lg:text-5xl font-black text-white tracking-tight mb-5 leading-tight">
+            Join 600,000+ Pakistanis<br />Building Better Futures
+          </h2>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/register/worker" className="inline-flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-400 text-white font-bold px-8 py-4 rounded-2xl transition-all shadow-lg text-sm">
+              Sign Up as Worker — It's Free <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link to="/register/employer" className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold px-8 py-4 rounded-2xl transition-all text-sm">
+              Hire Verified Workers
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-gray-950 py-16">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-10 mb-12">
             <div>
-              <div style={{ fontWeight:700, fontSize:"13px", color:"white", marginBottom:"16px", textTransform:"uppercase", letterSpacing:"0.06em" }}>Contact</div>
-              <div style={{ color:"#6b7280", fontSize:"13px", lineHeight:1.8 }}>
-                📍 Lahore, Pakistan<br />📞 +92 300-0000000<br />✉️ support@workbridge.pk
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-sm font-black">W</div>
+                <span className="font-black text-lg text-white">WorkBridge</span>
+              </div>
+              <p className="text-gray-500 text-sm">Bridging Trust, Empowering Futures. Pakistan's trusted platform for informal workers.</p>
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-gray-400 uppercase mb-5">Quick Links</h4>
+              <ul className="space-y-3 text-sm text-gray-500">
+                <li><a href="#" className="hover:text-white">About Us</a></li>
+                <li><a href="#" className="hover:text-white">Services</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-gray-400 uppercase mb-5">Support</h4>
+              <ul className="space-y-3 text-sm text-gray-500">
+                <li><a href="#" className="hover:text-white">Help Center</a></li>
+                <li><a href="#" className="hover:text-white">Terms</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-gray-400 uppercase mb-5">Contact</h4>
+              <div className="space-y-3 text-sm text-gray-500">
+                <div className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Lahore, Pakistan</div>
+                <div className="flex items-center gap-2"><Mail className="w-4 h-4" /> support@workbridge.pk</div>
               </div>
             </div>
           </div>
-          <div style={{ borderTop:"1px solid #222", paddingTop:"20px", textAlign:"center", color:"#4b5563", fontSize:"12px" }}>
-            © 2024 WorkBridge Pakistan. All rights reserved.
+          <div className="border-t border-gray-800 pt-8 flex justify-between text-xs text-gray-600">
+            <p>© 2024 WorkBridge Pakistan. All rights reserved.</p>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>All systems operational</span>
+            </div>
           </div>
         </div>
       </footer>

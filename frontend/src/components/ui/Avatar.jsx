@@ -1,22 +1,28 @@
-import React from "react";
+// components/ui/Avatar.jsx
 
-function initials(name = "") {
-  return name.split(" ").slice(0, 2).map(p => p[0] || "").join("").toUpperCase() || "?";
+const sizeClasses = {
+  sm: "w-9 h-9 text-sm",
+  md: "w-11 h-11 text-base",
+  lg: "w-16 h-16 text-xl",
+  xl: "w-20 h-20 text-2xl",
+};
+
+function getInitials(name = "") {
+  const words = name.trim().split(/\s+/);
+  const first = words[0]?.[0] ?? "";
+  const second = words[1]?.[0] ?? "";
+  return (first + second).toUpperCase();
 }
 
-export default function Avatar({ name = "", size = "md", style = {} }) {
-  const sizes = { sm: 36, md: 44, lg: 64, xl: 80 };
-  const fonts  = { sm: 13, md: 15, lg: 20, xl: 24 };
-  const px = sizes[size] || 44;
+export default function Avatar({ name = "", size = "md" }) {
+  const sizeCls = sizeClasses[size] ?? sizeClasses.md;
+  const initials = getInitials(name);
+
   return (
-    <div style={{
-      width: px, height: px, borderRadius: "50%",
-      background: "#d6f5ef", color: "#2a9d8f",
-      fontWeight: 700, fontSize: fonts[size] || 15,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      flexShrink: 0, userSelect: "none", ...style,
-    }}>
-      {initials(name)}
+    <div
+      className={`${sizeCls} rounded-full bg-teal-light text-teal-dark font-bold flex items-center justify-center shrink-0 select-none`}
+    >
+      {initials}
     </div>
   );
 }
