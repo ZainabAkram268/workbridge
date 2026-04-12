@@ -16,7 +16,11 @@ import {
 
 const delay = (ms = 400) => new Promise((res) => setTimeout(res, ms));
 
-// ─── POST ─────────────────────────────────────────────────────────────────────
+// ── Mock OTP state ────────────────────────────────────────────
+let registeredPhone = null;
+const MOCK_OTP = "123456";
+
+// ─── POST ─────────────────────────────────────────────────────
 const post = async (url, data) => {
 
   if (url === "/auth/login") {
@@ -30,24 +34,32 @@ const post = async (url, data) => {
     return { token, role };
   }
 
+  if (url === "/auth/register/worker") {
+    await delay(600);
+    // data is FormData, so use .get(); fallback for plain objects
+    registeredPhone = data instanceof FormData ? data.get("phone") : data.phone;
+    console.log(`[MockAPI] Worker registered. Phone: ${registeredPhone}. OTP: ${MOCK_OTP}`);
+    return { message: `Worker registered. Use OTP ${MOCK_OTP} to verify.`, phone: registeredPhone };
+  }
+
+  if (url === "/auth/register/employer") {
+    await delay(600);
+    registeredPhone = data instanceof FormData ? data.get("phone") : data.phone;
+    console.log(`[MockAPI] Employer registered. Phone: ${registeredPhone}. OTP: ${MOCK_OTP}`);
+    return { message: `Employer registered. Use OTP ${MOCK_OTP} to verify.`, phone: registeredPhone };
+  }
+
   if (url === "/auth/verify-otp") {
     await delay();
+    if (data.otp !== MOCK_OTP) {
+      throw new Error(`Invalid OTP. Hint: use ${MOCK_OTP}`);
+    }
     return { message: "OTP verified successfully" };
   }
 
   if (url === "/auth/resend-otp") {
     await delay();
-    return { message: "OTP resent successfully" };
-  }
-
-  if (url === "/auth/register/employer") {
-    await delay(600);
-    return { message: "Employer registered. OTP sent.", phone: data.phone };
-  }
-
-  if (url === "/auth/register/worker") {
-    await delay(600);
-    return { message: "Worker registered. Pending admin approval.", phone: data.phone };
+    return { message: `OTP resent. Use ${MOCK_OTP} to verify.` };
   }
 
   if (url === "/employer/jobs") {
@@ -67,7 +79,6 @@ const post = async (url, data) => {
     return { message: "Rating submitted successfully" };
   }
 
-  // ADMIN CREATE WORKER
   if (url === "/admin/workers/create") {
     await delay(500);
     const newWorker = {
@@ -86,7 +97,7 @@ const post = async (url, data) => {
   return { message: "Success" };
 };
 
-// ─── GET ──────────────────────────────────────────────────────────────────────
+// ─── GET ──────────────────────────────────────────────────────
 const get = async (url, config) => {
   const filters = config?.params || {};
 
@@ -126,7 +137,6 @@ const get = async (url, config) => {
   if (url === "/admin/workers/pending")
     return delay().then(() => mockDashboardMetrics.recentWorkers);
 
-  // ADMIN ALL WORKERS
   if (url === "/admin/workers") return delay().then(() => [...mockAllWorkers]);
 
   if (url.match(/^\/workers\/[\w]+\/profile$/)) return delay().then(() => mockWorkerProfile);
@@ -136,7 +146,7 @@ const get = async (url, config) => {
   return delay().then(() => []);
 };
 
-// ─── PATCH ────────────────────────────────────────────────────────────────────
+// ─── PATCH ────────────────────────────────────────────────────
 const patch = async (url, data) => {
   await delay(300);
   if (url.includes("/cancel"))  return { message: "Job cancelled" };
@@ -144,7 +154,6 @@ const patch = async (url, data) => {
   if (url.includes("/accept"))  return { message: "Job accepted" };
   if (url.includes("/done"))    return { message: "Job marked as done" };
 
-  // ✅ Worker approve — move from pending to allWorkers as verified
   if (url.match(/\/admin\/workers\/.+\/approve/)) {
     const id = url.split("/")[3];
     const idx = mockDashboardMetrics.recentWorkers.findIndex((w) => w._id === id);
@@ -155,7 +164,6 @@ const patch = async (url, data) => {
     return { message: "Worker approved" };
   }
 
-  // ✅ Worker reject — move from pending to allWorkers as rejected
   if (url.match(/\/admin\/workers\/.+\/reject/)) {
     const id = url.split("/")[3];
     const idx = mockDashboardMetrics.recentWorkers.findIndex((w) => w._id === id);
@@ -171,11 +179,11 @@ const patch = async (url, data) => {
   return { message: "Updated successfully" };
 };
 
-// ─── PUT / DELETE ─────────────────────────────────────────────────────────────
+// ─── PUT / DELETE ─────────────────────────────────────────────
 const put = async (url, data) => { await delay(400); return { message: "Updated" }; };
 const del = async (url)        => { await delay(300); return { message: "Deleted" }; };
 
-// ─── MOCK SOCKET ──────────────────────────────────────────────────────────────
+// ─── MOCK SOCKET ──────────────────────────────────────────────
 export const mockSocket = {
   _listeners: {},
   emit(event, ...args) {
