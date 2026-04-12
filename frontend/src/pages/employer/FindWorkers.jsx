@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import Sidebar from "../../components/layout/Sidebar";
 import {
   Car, Sparkles, Sprout, Baby, ChefHat,
   MapPin, Star, CheckCircle, XCircle, Search
@@ -66,7 +65,7 @@ export default function FindWorkers() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role="employer" />
+      
 
       <main className="flex-1 ml-[232px] p-8">
         <div className="mb-6">

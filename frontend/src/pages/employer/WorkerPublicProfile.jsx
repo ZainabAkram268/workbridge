@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
-import Sidebar from "../../components/layout/Sidebar";
 
 function initials(n = "") {
   return n.split(" ").slice(0, 2).map(p => p[0]).join("").toUpperCase();
@@ -49,7 +48,7 @@ export default function WorkerPublicProfile() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      <Sidebar role="employer" />
+      
 
       <main className="flex-1 ml-[232px]">
         <div className="max-w-6xl mx-auto px-6 py-8 flex gap-6">

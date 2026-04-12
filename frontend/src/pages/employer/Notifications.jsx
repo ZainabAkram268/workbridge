@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import api from "../../services/api";
-import Sidebar from "../../components/layout/Sidebar";
-
 import {
   Bell,
   CheckCircle,
@@ -88,7 +86,6 @@ export default function EmployerNotifications() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role="employer" />
 
       <main className="flex-1 ml-[232px] p-8">
         <div className="max-w-2xl">

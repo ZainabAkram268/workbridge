@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import Sidebar from "../../components/layout/Sidebar";
 import {
   Star, Calendar, CheckCircle,
   Clock, RefreshCcw, MessageSquare
@@ -105,7 +104,7 @@ export default function JobRequests() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar role="employer" />
+      
 
       <main className="flex-1 ml-[232px] p-6">
 
